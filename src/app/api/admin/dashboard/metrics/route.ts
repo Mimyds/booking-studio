@@ -1,8 +1,15 @@
 // src/app/api/admin/dashboard/metrics/route.ts
 import { NextResponse } from "next/server"
+import { getCurrentAdmin } from "@/lib/admin/auth"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function GET() {
+  const currentAdmin = await getCurrentAdmin()
+
+  if (!currentAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const supabase = await createServerSupabaseClient()
 
   try {
