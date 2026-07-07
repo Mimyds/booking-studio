@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Tableau de bord d’administration The Studio.",
 }
 
+export const dynamic = "force-dynamic"
+
 type DashboardKpis = {
   studios_count?: number | null
   upcoming_bookings?: number | null
