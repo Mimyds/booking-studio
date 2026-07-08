@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { AnalyticsChartSwitcher } from "./dashboard-charts"
 
 export const metadata: Metadata = {
   title: "Dashboard admin | The Studio",
@@ -46,15 +47,47 @@ type PaymentAlert = {
   status: string
 }
 
+type RevenueOverTime = {
+  month: string
+  revenue: number | string | null
+}
+
+type BookingsOverTime = {
+  month: string
+  count: number | string | null
+}
+
+type BookingsByStudio = {
+  studio: string | null
+  count: number | string | null
+}
+
+type BookingsBySource = {
+  source: string | null
+  count: number | string | null
+}
+
 async function getDashboardData() {
   const supabase = await createServerSupabaseClient()
 
-  const [kpis, upcomingArrivals, recentBookings, paymentAlerts] =
-    await Promise.all([
+  const [
+    kpis,
+    upcomingArrivals,
+    recentBookings,
+    paymentAlerts,
+    revenueOverTime,
+    bookingsOverTime,
+    bookingsByStudio,
+    bookingsBySource,
+  ] = await Promise.all([
       supabase.from("dashboard_kpis").select("*").single(),
       supabase.from("dashboard_upcoming_arrivals").select("*").limit(4),
       supabase.from("dashboard_recent_bookings").select("*").limit(4),
       supabase.from("dashboard_payments_alerts").select("*").limit(4),
+      supabase.from("dashboard_revenue_over_time").select("*").limit(12),
+      supabase.from("dashboard_bookings_over_time").select("*").limit(12),
+      supabase.from("dashboard_bookings_by_studio").select("*").limit(6),
+      supabase.from("dashboard_bookings_by_source").select("*").limit(6),
     ])
 
   return {
@@ -62,18 +95,26 @@ async function getDashboardData() {
     upcomingArrivals: (upcomingArrivals.data ?? []) as UpcomingArrival[],
     recentBookings: (recentBookings.data ?? []) as RecentBooking[],
     paymentAlerts: (paymentAlerts.data ?? []) as PaymentAlert[],
+    revenueOverTime: (revenueOverTime.data ?? []) as RevenueOverTime[],
+    bookingsOverTime: (bookingsOverTime.data ?? []) as BookingsOverTime[],
+    bookingsByStudio: (bookingsByStudio.data ?? []) as BookingsByStudio[],
+    bookingsBySource: (bookingsBySource.data ?? []) as BookingsBySource[],
   }
 }
 
-function formatNumber(value: number | null | undefined) {
-  return new Intl.NumberFormat("fr-FR").format(value ?? 0)
+function toNumber(value: number | string | null | undefined) {
+  return Number(value ?? 0)
+}
+
+function formatNumber(value: number | string | null | undefined) {
+  return new Intl.NumberFormat("fr-FR").format(toNumber(value))
 }
 
 function formatCurrency(value: number | string | null | undefined) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
-  }).format(Number(value ?? 0))
+  }).format(toNumber(value))
 }
 
 function formatDate(value: string) {
@@ -85,8 +126,16 @@ function formatDate(value: string) {
 }
 
 export default async function AdminDashboardPage() {
-  const { kpis, upcomingArrivals, recentBookings, paymentAlerts } =
-    await getDashboardData()
+  const {
+    kpis,
+    upcomingArrivals,
+    recentBookings,
+    paymentAlerts,
+    revenueOverTime,
+    bookingsOverTime,
+    bookingsByStudio,
+    bookingsBySource,
+  } = await getDashboardData()
 
   const cards: Array<{
     label: string
@@ -190,6 +239,24 @@ export default async function AdminDashboardPage() {
           </Card>
         ))}
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Analyses des réservations</CardTitle>
+          <CardDescription>
+            Vue consolidée des revenus, volumes, studios et canaux
+            d’acquisition.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AnalyticsChartSwitcher
+            bookingsBySource={bookingsBySource}
+            bookingsByStudio={bookingsByStudio}
+            bookingsOverTime={bookingsOverTime}
+            revenueOverTime={revenueOverTime}
+          />
+        </CardContent>
+      </Card>
 
       <section className="grid grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)] gap-4 max-[1180px]:grid-cols-1">
         <Card>
