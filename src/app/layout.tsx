@@ -24,7 +24,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={cn(cormorant.variable, "font-sans", geist.variable)}>
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body
+        suppressHydrationWarning
+        className="font-sans antialiased bg-background text-foreground"
+      >
         {children}
       </body>
     </html>
