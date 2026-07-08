@@ -1,16 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
-
-function getSupabaseConfig() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase environment variables")
-  }
-
-  return { supabaseUrl, supabaseKey }
-}
+import { getSupabaseConfig } from "@/lib/supabase/config"
 
 export async function createServerSupabaseClient() {
   const { supabaseUrl, supabaseKey } = getSupabaseConfig()
