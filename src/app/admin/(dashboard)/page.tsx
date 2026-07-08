@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import type { CSSProperties } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
@@ -10,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import styles from "./dashboard.module.css"
 
 export const metadata: Metadata = {
   title: "Dashboard admin | The Studio",
@@ -47,8 +45,6 @@ type PaymentAlert = {
   amount: number | string | null
   status: string
 }
-
-type KpiTone = CSSProperties & Record<`--${string}`, string>
 
 async function getDashboardData() {
   const supabase = await createServerSupabaseClient()
@@ -97,62 +93,53 @@ export default async function AdminDashboardPage() {
     value: string
     hint: string
     icon: string
-    tone: KpiTone
+    iconClassName: string
+    glowClassName: string
   }> = [
     {
       label: "Studios",
       value: formatNumber(kpis.studios_count),
       hint: "Inventaire publié",
       icon: "ST",
-      tone: {
-        "--kpi-bg": "#eef2ff",
-        "--kpi-color": "#4f46e5",
-        "--kpi-glow": "rgba(79, 70, 229, 0.14)",
-      },
+      iconClassName: "bg-indigo-50 text-indigo-600",
+      glowClassName: "after:bg-indigo-500/15",
     },
     {
       label: "Arrivées à venir",
       value: formatNumber(kpis.upcoming_bookings),
       hint: "Séjours confirmés",
       icon: "IN",
-      tone: {
-        "--kpi-bg": "#ecfeff",
-        "--kpi-color": "#0891b2",
-        "--kpi-glow": "rgba(8, 145, 178, 0.14)",
-      },
+      iconClassName: "bg-cyan-50 text-cyan-600",
+      glowClassName: "after:bg-cyan-500/15",
     },
     {
       label: "Réservations du mois",
       value: formatNumber(kpis.monthly_bookings),
       hint: "Créées ce mois-ci",
       icon: "BK",
-      tone: {
-        "--kpi-bg": "#f0fdf4",
-        "--kpi-color": "#16a34a",
-        "--kpi-glow": "rgba(22, 163, 74, 0.14)",
-      },
+      iconClassName: "bg-green-50 text-green-600",
+      glowClassName: "after:bg-green-500/15",
     },
     {
       label: "Revenus du mois",
       value: formatCurrency(kpis.monthly_revenue),
       hint: "Réservations confirmées",
       icon: "€",
-      tone: {
-        "--kpi-bg": "#fff7ed",
-        "--kpi-color": "#ea580c",
-        "--kpi-glow": "rgba(234, 88, 12, 0.16)",
-      },
+      iconClassName: "bg-orange-50 text-orange-600",
+      glowClassName: "after:bg-orange-500/15",
     },
   ]
 
   return (
-    <main className={styles.dashboard}>
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
+    <main className="grid gap-6">
+      <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-700 p-[clamp(1.5rem,3vw,2.25rem)] text-white shadow-2xl shadow-indigo-950/30 after:absolute after:-bottom-40 after:-right-24 after:size-[22rem] after:rounded-full after:bg-sky-400/25 after:blur-xl">
+        <div className="relative z-10 grid grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)] gap-6 max-[1180px]:grid-cols-1">
           <div>
             <Badge variant="secondary">Admin workspace</Badge>
-            <h1 className={styles.heroTitle}>Pilotez vos studios en temps réel.</h1>
-            <p className={styles.heroDescription}>
+            <h1 className="mt-3 max-w-3xl text-[clamp(2.15rem,5vw,4.3rem)] font-extrabold leading-[0.95] tracking-[-0.065em]">
+              Pilotez vos studios en temps réel.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200/90 md:text-base">
               Suivez les revenus, les réservations, les arrivées et les alertes
               de paiement depuis un espace conçu comme une plateforme SaaS
               moderne.
@@ -163,12 +150,14 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className={styles.heroPanel}>
-            <p className={styles.heroPanelLabel}>Revenus du mois</p>
-            <p className={styles.heroPanelValue}>
+          <div className="self-stretch rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-200/75">
+              Revenus du mois
+            </p>
+            <p className="mt-4 text-[clamp(2rem,4vw,3.2rem)] font-extrabold tracking-[-0.05em]">
               {formatCurrency(kpis.monthly_revenue)}
             </p>
-            <div className={styles.heroPanelFooter}>
+            <div className="mt-4 flex justify-between gap-4 text-sm text-slate-200/80">
               <span>{formatNumber(kpis.monthly_bookings)} réservation(s)</span>
               <span>{formatNumber(kpis.studios_count)} studio(s)</span>
             </div>
@@ -176,28 +165,33 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className={styles.kpiGrid}>
+      <section className="grid grid-cols-4 gap-4 max-[1180px]:grid-cols-2 max-[640px]:grid-cols-1">
         {cards.map((card) => (
           <Card
             key={card.label}
-            className={styles.kpiCard}
-            style={card.tone}
+            className={`relative min-h-[10.25rem] overflow-hidden after:absolute after:-bottom-16 after:-right-12 after:size-32 after:rounded-full ${card.glowClassName}`}
           >
             <CardHeader>
-              <div className={styles.kpiTopline}>
+              <div className="flex items-center justify-between gap-3">
                 <CardDescription>{card.label}</CardDescription>
-                <div className={styles.kpiIcon}>{card.icon}</div>
+                <div
+                  className={`grid size-11 place-items-center rounded-2xl font-extrabold ${card.iconClassName}`}
+                >
+                  {card.icon}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <p className={styles.kpiValue}>{card.value}</p>
-              <p className={styles.kpiHint}>{card.hint}</p>
+              <p className="mt-5 text-3xl font-extrabold tracking-tight">
+                {card.value}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">{card.hint}</p>
             </CardContent>
           </Card>
         ))}
       </section>
 
-      <section className={styles.panelGrid}>
+      <section className="grid grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)] gap-4 max-[1180px]:grid-cols-1">
         <Card>
           <CardHeader>
             <CardTitle>Arrivées à venir</CardTitle>
@@ -207,14 +201,17 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             {upcomingArrivals.length > 0 ? (
-              <div className={styles.list}>
+              <div className="grid gap-3">
                 {upcomingArrivals.map((arrival) => (
-                  <div key={arrival.booking_id} className={styles.listItem}>
+                  <div
+                    key={arrival.booking_id}
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4"
+                  >
                     <div>
-                      <p className={styles.listItemTitle}>
+                      <p className="text-sm font-bold">
                         {arrival.first_name} {arrival.last_name}
                       </p>
-                      <p className={styles.listItemMeta}>
+                      <p className="mt-0.5 text-xs text-slate-500">
                         {arrival.studio_name ?? "Studio"} ·{" "}
                         {formatDate(arrival.check_in)}
                       </p>
@@ -224,7 +221,7 @@ export default async function AdminDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className={styles.emptyState}>
+              <div className="grid min-h-48 place-items-center rounded-3xl bg-slate-50 bg-[repeating-linear-gradient(45deg,transparent,transparent_12px,rgba(148,163,184,0.08)_12px,rgba(148,163,184,0.08)_13px)] text-center text-slate-500">
                 <p>Aucune arrivée confirmée à venir.</p>
               </div>
             )}
@@ -239,29 +236,35 @@ export default async function AdminDashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={styles.actionGrid}>
-              <div className={styles.actionCard}>
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
                 <div>
-                  <p className={styles.listItemTitle}>Réservations récentes</p>
-                  <span>{recentBookings.length} élément(s)</span>
+                  <p className="text-sm font-bold">Réservations récentes</p>
+                  <span className="text-xs text-slate-500">
+                    {recentBookings.length} élément(s)
+                  </span>
                 </div>
                 <Button variant="ghost" size="sm">
                   Ouvrir
                 </Button>
               </div>
-              <div className={styles.actionCard}>
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
                 <div>
-                  <p className={styles.listItemTitle}>Alertes paiement</p>
-                  <span>{paymentAlerts.length} alerte(s)</span>
+                  <p className="text-sm font-bold">Alertes paiement</p>
+                  <span className="text-xs text-slate-500">
+                    {paymentAlerts.length} alerte(s)
+                  </span>
                 </div>
                 <Button variant="ghost" size="sm">
                   Traiter
                 </Button>
               </div>
-              <div className={styles.actionCard}>
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">
                 <div>
-                  <p className={styles.listItemTitle}>Catalogue studios</p>
-                  <span>Tarifs, galerie, disponibilité</span>
+                  <p className="text-sm font-bold">Catalogue studios</p>
+                  <span className="text-xs text-slate-500">
+                    Tarifs, galerie, disponibilité
+                  </span>
                 </div>
                 <Button variant="ghost" size="sm">
                   Gérer
