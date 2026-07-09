@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { createBrowserSupabaseClient } from "@/lib/supabase/client"
+import { loginAdminAction } from "./actions"
 
 export function AdminLoginForm() {
   const router = useRouter()
@@ -17,29 +17,11 @@ export function AdminLoginForm() {
     setErrorMessage(null)
     setIsSubmitting(true)
 
-    const supabase = createBrowserSupabaseClient()
+    const formData = new FormData(event.currentTarget)
+    const result = await loginAdminAction(formData)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error || !data.user) {
-      setErrorMessage(error?.message ?? "Connexion impossible.")
-      setIsSubmitting(false)
-      return
-    }
-
-    const { data: adminUser, error: adminError } = await supabase
-      .from("admin_users")
-      .select("id")
-      .eq("id", data.user.id)
-      .eq("is_active", true)
-      .single()
-
-    if (adminError || !adminUser) {
-      await supabase.auth.signOut()
-      setErrorMessage("Ce compte n’a pas accès à l’administration.")
+    if (result.error) {
+      setErrorMessage(result.error)
       setIsSubmitting(false)
       return
     }
