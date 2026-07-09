@@ -1,10 +1,10 @@
 "use client"
 
 import { createBrowserClient } from "@supabase/ssr"
-import { getSupabaseConfig } from "@/lib/supabase/config"
+import { getSupabaseBrowserConfig } from "@/lib/supabase/config"
 
 export function createBrowserSupabaseClient() {
-  const { supabaseUrl, supabaseKey } = getSupabaseConfig()
+  const { supabaseUrl, supabaseKey } = getSupabaseBrowserConfig()
 
   return createBrowserClient(supabaseUrl, supabaseKey)
 }
