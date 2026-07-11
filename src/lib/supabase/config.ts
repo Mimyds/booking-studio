@@ -3,11 +3,16 @@ type SupabaseConfig = {
   supabaseKey: string
 }
 
+type SupabaseEnvEntry = {
+  name: string
+  value: string
+}
+
 function firstEnvValue(envNames: string[]) {
   return envNames.find((envName) => process.env[envName])
 }
 
-function getRequiredEnv(envNames: string[], label: string) {
+function getRequiredEnvEntry(envNames: string[], label: string): SupabaseEnvEntry {
   const envName = firstEnvValue(envNames)
 
   if (!envName) {
@@ -16,7 +21,14 @@ function getRequiredEnv(envNames: string[], label: string) {
     )
   }
 
-  return process.env[envName]!
+  return {
+    name: envName,
+    value: process.env[envName]!,
+  }
+}
+
+function getRequiredEnv(envNames: string[], label: string) {
+  return getRequiredEnvEntry(envNames, label).value
 }
 
 export function getSupabaseBrowserConfig(): SupabaseConfig {
@@ -47,6 +59,28 @@ export function getSupabaseServerConfig(): SupabaseConfig {
       ],
       "server publishable key"
     ),
+  }
+}
+
+export function getSupabaseServerDebugInfo() {
+  const urlEntry = getRequiredEnvEntry(
+    ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
+    "server URL"
+  )
+  const keyEntry = getRequiredEnvEntry(
+    [
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    ],
+    "server publishable key"
+  )
+
+  return {
+    supabaseUrlEnv: urlEntry.name,
+    supabaseUrlHost: new URL(urlEntry.value).host,
+    supabaseKeyEnv: keyEntry.name,
   }
 }
 

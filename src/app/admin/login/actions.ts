@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getSupabaseServerDebugInfo } from "@/lib/supabase/config"
 
 export type AdminLoginActionState = {
   error?: string
@@ -24,6 +25,14 @@ export async function loginAdminAction(
   })
 
   if (error || !data.user) {
+    console.warn("[admin-login] Supabase auth failed", {
+      ...getSupabaseServerDebugInfo(),
+      authStatus: error?.status,
+      authCode: error?.code,
+      authMessage: error?.message,
+      hasUser: Boolean(data.user),
+    })
+
     return { error: "Identifiants invalides." }
   }
 
@@ -35,6 +44,14 @@ export async function loginAdminAction(
     .single()
 
   if (adminError || !adminUser) {
+    console.warn("[admin-login] Admin user check failed", {
+      ...getSupabaseServerDebugInfo(),
+      userId: data.user.id,
+      adminCode: adminError?.code,
+      adminMessage: adminError?.message,
+      hasAdminUser: Boolean(adminUser),
+    })
+
     await supabase.auth.signOut()
     return { error: "Ce compte n’a pas accès à l’administration." }
   }
