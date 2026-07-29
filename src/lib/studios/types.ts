@@ -17,6 +17,15 @@ export type Studio = {
   welcome_title: string | null
 }
 
+export type StudioGalleryImage = {
+  id: number
+  created_at: string
+  studio_id: number
+  image_public_id: string
+  sort_order: number
+  alt_text: string | null
+}
+
 export type StudioOrderBy =
   | "created_at"
   | "name"

@@ -21,7 +21,7 @@ export async function createStudioAction(
     return { error: "Votre session a expiré. Reconnectez-vous pour continuer." }
   }
 
-  const { payload, errors } = parseStudioForm(formData)
+  const { payload, galleryImages, errors } = parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -31,7 +31,7 @@ export async function createStudioAction(
   }
 
   const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
+  const { data: studio, error } = await supabase
     .from("studios")
     .insert([payload])
     .select("id")
@@ -52,6 +52,41 @@ export async function createStudioAction(
 
     return {
       error: "Le studio n’a pas pu être créé. Réessayez dans un instant.",
+    }
+  }
+
+  if (galleryImages.length > 0) {
+    const { error: galleryError } = await supabase
+      .from("studio_gallery_images")
+      .insert(
+        galleryImages.map((image) => ({
+          ...image,
+          studio_id: studio.id,
+        }))
+      )
+
+    if (galleryError) {
+      console.error("[create-studio] Gallery insert failed", {
+        code: galleryError.code,
+        message: galleryError.message,
+      })
+
+      const { error: rollbackError } = await supabase
+        .from("studios")
+        .delete()
+        .eq("id", studio.id)
+
+      if (rollbackError) {
+        console.error("[create-studio] Studio rollback failed", {
+          code: rollbackError.code,
+          message: rollbackError.message,
+        })
+      }
+
+      return {
+        error:
+          "Les images de galerie n’ont pas pu être enregistrées. Le studio n’a pas été créé.",
+      }
     }
   }
 

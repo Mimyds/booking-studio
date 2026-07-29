@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   parseStudioForm,
+  parseStudioGalleryImages,
   slugifyStudioName,
 } from "@/lib/studios/form"
 
@@ -23,6 +24,16 @@ describe("parseStudioForm", () => {
     formData.set("currency", "eur")
     formData.set("country_code", "mq")
     formData.set("pets_allowed", "on")
+    formData.set("image_cover_public_id", "booking-studio/cover/image")
+    formData.set(
+      "gallery_images",
+      JSON.stringify([
+        {
+          image_public_id: "booking-studio/gallery/image",
+          alt_text: "Salon lumineux",
+        },
+      ])
+    )
 
     const result = parseStudioForm(formData)
 
@@ -36,7 +47,15 @@ describe("parseStudioForm", () => {
       currency: "EUR",
       country_code: "MQ",
       pets_allowed: true,
+      image_cover_public_id: "booking-studio/cover/image",
     })
+    expect(result.galleryImages).toEqual([
+      {
+        image_public_id: "booking-studio/gallery/image",
+        alt_text: "Salon lumineux",
+        sort_order: 0,
+      },
+    ])
   })
 
   it("returns errors for invalid required values", () => {
@@ -49,6 +68,20 @@ describe("parseStudioForm", () => {
       base_price: expect.any(String),
       cleaning_fee: expect.any(String),
       currency: expect.any(String),
+    })
+  })
+})
+
+describe("parseStudioGalleryImages", () => {
+  it("rejects duplicate public ids", () => {
+    const value = JSON.stringify([
+      { image_public_id: "same-image" },
+      { image_public_id: "same-image" },
+    ])
+
+    expect(parseStudioGalleryImages(value)).toMatchObject({
+      galleryImages: [],
+      error: expect.any(String),
     })
   })
 })

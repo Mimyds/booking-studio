@@ -9,8 +9,15 @@ export type StudioFormPayload = {
   city: string | null
   country_code: string | null
   pets_allowed: boolean
+  image_cover_public_id: string | null
   short_description: string | null
   welcome_title: string | null
+}
+
+export type StudioGalleryImageInput = {
+  image_public_id: string
+  alt_text: string | null
+  sort_order: number
 }
 
 export type StudioFormErrors = Partial<
@@ -24,6 +31,7 @@ export type StudioFormErrors = Partial<
     | "currency"
     | "city"
     | "country_code"
+    | "gallery_images"
     | "short_description"
     | "welcome_title",
     string
@@ -53,10 +61,54 @@ export function slugifyStudioName(value: string) {
     .replace(/^-+|-+$/g, "")
 }
 
+export function parseStudioGalleryImages(value: FormDataEntryValue | null) {
+  if (!value) {
+    return { galleryImages: [] as StudioGalleryImageInput[] }
+  }
+
+  try {
+    const parsedValue = JSON.parse(String(value))
+
+    if (!Array.isArray(parsedValue) || parsedValue.length > 12) {
+      return { galleryImages: [], error: "La galerie est invalide." }
+    }
+
+    const publicIds = new Set<string>()
+    const galleryImages = parsedValue.map((image, sortOrder) => {
+      const publicId =
+        typeof image?.image_public_id === "string"
+          ? image.image_public_id.trim()
+          : ""
+      const altText =
+        typeof image?.alt_text === "string" ? image.alt_text.trim() : ""
+
+      if (!publicId || publicIds.has(publicId)) {
+        throw new Error("Invalid gallery image")
+      }
+
+      publicIds.add(publicId)
+
+      return {
+        image_public_id: publicId,
+        alt_text: altText || null,
+        sort_order: sortOrder,
+      }
+    })
+
+    return { galleryImages }
+  } catch {
+    return { galleryImages: [], error: "La galerie est invalide." }
+  }
+}
+
 export function parseStudioForm(formData: FormData): {
   payload: StudioFormPayload
+  galleryImages: StudioGalleryImageInput[]
   errors: StudioFormErrors
 } {
+  const { galleryImages, error: galleryError } = parseStudioGalleryImages(
+    formData.get("gallery_images")
+  )
   const payload: StudioFormPayload = {
     slug: getText(formData, "slug").toLowerCase(),
     name: getText(formData, "name"),
@@ -68,6 +120,10 @@ export function parseStudioForm(formData: FormData): {
     city: getOptionalText(formData, "city"),
     country_code: getOptionalText(formData, "country_code")?.toUpperCase() ?? null,
     pets_allowed: formData.get("pets_allowed") === "on",
+    image_cover_public_id: getOptionalText(
+      formData,
+      "image_cover_public_id"
+    ),
     short_description: getOptionalText(formData, "short_description"),
     welcome_title: getOptionalText(formData, "welcome_title"),
   }
@@ -103,5 +159,9 @@ export function parseStudioForm(formData: FormData): {
     errors.country_code = "Utilisez un code pays à 2 lettres, par exemple MQ."
   }
 
-  return { payload, errors }
+  if (galleryError) {
+    errors.gallery_images = galleryError
+  }
+
+  return { payload, galleryImages, errors }
 }
