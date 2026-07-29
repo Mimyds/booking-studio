@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { getCurrentAdmin } from "@/lib/admin/auth"
+import { destroyCloudinaryAssets } from "@/lib/cloudinary/server"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { parseStudioForm, type StudioFormErrors } from "@/lib/studios/form"
 
@@ -44,6 +45,18 @@ export async function createStudioAction(
     })
 
     if (error.code === "23505") {
+      const { data: existingStudio } = await supabase
+        .from("studios")
+        .select("id")
+        .eq("slug", payload.slug)
+        .maybeSingle()
+
+      if (existingStudio) {
+        revalidatePath("/admin/studios")
+        revalidatePath("/studios")
+        redirect("/admin/studios")
+      }
+
       return {
         error: "Ce slug est déjà utilisé par un autre studio.",
         errors: { slug: "Choisissez un slug unique." },
@@ -82,6 +95,11 @@ export async function createStudioAction(
           message: rollbackError.message,
         })
       }
+
+      await destroyCloudinaryAssets([
+        payload.image_cover_public_id,
+        ...galleryImages.map((image) => image.image_public_id),
+      ])
 
       return {
         error:

@@ -2,6 +2,27 @@
 
 Application Next.js de gestion et de réservation des studios.
 
+## Cloudinary
+
+Les uploads admin utilisent `CldUploadWidget` avec une signature serveur
+protégée par la session admin. Les images sont stockées en base sous forme de
+`public_id`, puis affichées avec `CldImage`.
+
+Variables requises :
+
+```bash
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+NEXT_PUBLIC_CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+Les dossiers autorisés sont centralisés dans `src/lib/cloudinary/config.ts` :
+
+```text
+booking-studio/studios/{slug}/cover
+booking-studio/studios/{slug}/gallery
+```
+
 ## Getting Started
 
 First, run the development server:

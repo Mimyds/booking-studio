@@ -1,9 +1,10 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { CloudinaryImage } from "@/components/cloudinary/cloudinary-image"
 import { Button } from "@/components/ui/button"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { studioSelect } from "@/lib/studios/query"
-import type { Studio } from "@/lib/studios/types"
+import type { Studio, StudioGalleryImage } from "@/lib/studios/types"
 
 type StudioPageProps = {
   params: Promise<{ slug: string }>
@@ -23,6 +24,13 @@ export default async function StudioPage({ params }: StudioPageProps) {
   }
 
   const studio = studioData as Studio
+  const { data: galleryData } = await supabase
+    .from("studio_gallery_images")
+    .select("id, created_at, studio_id, image_public_id, sort_order, alt_text")
+    .eq("studio_id", studio.id)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true })
+  const galleryImages = (galleryData ?? []) as StudioGalleryImage[]
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-6 py-16">
@@ -39,10 +47,44 @@ export default async function StudioPage({ params }: StudioPageProps) {
           ) : null}
         </div>
 
+        {studio.image_cover_public_id ? (
+          <div className="overflow-hidden rounded-3xl bg-muted">
+            <CloudinaryImage
+              publicId={studio.image_cover_public_id}
+              alt={`Vue principale de ${studio.name}`}
+              width={1600}
+              height={900}
+              className="aspect-video w-full object-cover"
+            />
+          </div>
+        ) : null}
+
         {studio.description ? (
           <p className="max-w-3xl whitespace-pre-line leading-7 text-muted-foreground">
             {studio.description}
           </p>
+        ) : null}
+
+        {galleryImages.length > 0 ? (
+          <section>
+            <h2 className="font-serif text-3xl font-medium">Galerie</h2>
+            <div className="mt-5 grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
+              {galleryImages.map((image) => (
+                <div
+                  key={image.id}
+                  className="overflow-hidden rounded-2xl bg-muted"
+                >
+                  <CloudinaryImage
+                    publicId={image.image_public_id}
+                    alt={image.alt_text || `Galerie de ${studio.name}`}
+                    width={960}
+                    height={720}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
         ) : null}
 
         <div>

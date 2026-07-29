@@ -3,8 +3,13 @@
 import { useActionState, useState } from "react"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
+import {
+  StudioImageUpload,
+  type StudioImageValue,
+} from "@/components/cloudinary/studio-image-upload"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { cloudinaryFolders } from "@/lib/cloudinary/config"
 import { slugifyStudioName } from "@/lib/studios/form"
 import {
   createStudioAction,
@@ -36,22 +41,65 @@ export function StudioForm() {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [isSlugEdited, setIsSlugEdited] = useState(false)
+  const [coverImage, setCoverImage] = useState<StudioImageValue | null>(null)
+  const [galleryImages, setGalleryImages] = useState<StudioImageValue[]>([])
+  const hasUploadedImages = Boolean(coverImage || galleryImages.length > 0)
 
   function handleNameChange(value: string) {
     setName(value)
 
-    if (!isSlugEdited) {
+    if (!isSlugEdited && !hasUploadedImages) {
       setSlug(slugifyStudioName(value))
     }
   }
 
   function handleSlugChange(value: string) {
+    if (hasUploadedImages) {
+      return
+    }
+
     setSlug(slugifyStudioName(value))
     setIsSlugEdited(value.trim() !== "")
   }
 
+  function addGalleryImage(image: StudioImageValue) {
+    setGalleryImages((currentImages) => {
+      if (
+        currentImages.some(
+          (currentImage) =>
+            currentImage.image_public_id === image.image_public_id
+        )
+      ) {
+        return currentImages
+      }
+
+      return [...currentImages, image].slice(0, 12)
+    })
+  }
+
+  function updateGalleryAltText(publicId: string, altText: string) {
+    setGalleryImages((currentImages) =>
+      currentImages.map((image) =>
+        image.image_public_id === publicId
+          ? { ...image, alt_text: altText }
+          : image
+      )
+    )
+  }
+
   return (
     <form action={formAction} className="grid gap-6">
+      <input
+        type="hidden"
+        name="image_cover_public_id"
+        value={coverImage?.image_public_id ?? ""}
+      />
+      <input
+        type="hidden"
+        name="gallery_images"
+        value={JSON.stringify(galleryImages)}
+      />
+
       {state.error ? (
         <div
           role="alert"
@@ -103,11 +151,14 @@ export function StudioForm() {
               placeholder="studio-jasmin"
               autoComplete="off"
               required
+              readOnly={hasUploadedImages}
               aria-invalid={Boolean(state.errors?.slug)}
               className="h-11"
             />
             <p className="text-xs text-slate-500">
-              Adresse publique : /studios/{slug || "studio-jasmin"}
+              {hasUploadedImages
+                ? "Le slug est verrouillé pour conserver les dossiers des images."
+                : `Adresse publique : /studios/${slug || "studio-jasmin"}`}
             </p>
             <FieldError message={state.errors?.slug} />
           </div>
@@ -322,6 +373,54 @@ export function StudioForm() {
             </span>
           </label>
         </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/5">
+        <div className="border-b border-slate-100 pb-5">
+          <h2 className="text-lg font-bold text-slate-950">Images</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Les images sont envoyées dans les dossiers Cloudinary associés au
+            slug du studio.
+          </p>
+        </div>
+
+        {slug ? (
+          <div className="mt-5 grid gap-6">
+            <StudioImageUpload
+              folder={cloudinaryFolders.studioCover(slug)}
+              images={coverImage ? [coverImage] : []}
+              label="Choisir l’image de couverture"
+              maxFiles={1}
+              onRemove={() => setCoverImage(null)}
+              onUpload={setCoverImage}
+            />
+            <FieldError message={state.errors?.image_cover_public_id} />
+
+            <div className="border-t border-slate-100 pt-6">
+              <StudioImageUpload
+                folder={cloudinaryFolders.studioGallery(slug)}
+                images={galleryImages}
+                label="Ajouter des images à la galerie"
+                maxFiles={12}
+                multiple
+                onAltTextChange={updateGalleryAltText}
+                onRemove={(publicId) =>
+                  setGalleryImages((currentImages) =>
+                    currentImages.filter(
+                      (image) => image.image_public_id !== publicId
+                    )
+                  )
+                }
+                onUpload={addGalleryImage}
+              />
+              <FieldError message={state.errors?.gallery_images} />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+            Renseignez d’abord le nom ou le slug du studio.
+          </div>
+        )}
       </section>
 
       <div className="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-xl shadow-slate-950/10 backdrop-blur-xl max-[560px]:grid">

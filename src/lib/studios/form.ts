@@ -1,3 +1,8 @@
+import {
+  cloudinaryFolders,
+  isPublicIdInFolder,
+} from "@/lib/cloudinary/config"
+
 export type StudioFormPayload = {
   slug: string
   name: string
@@ -31,6 +36,7 @@ export type StudioFormErrors = Partial<
     | "currency"
     | "city"
     | "country_code"
+    | "image_cover_public_id"
     | "gallery_images"
     | "short_description"
     | "welcome_title",
@@ -159,8 +165,25 @@ export function parseStudioForm(formData: FormData): {
     errors.country_code = "Utilisez un code pays à 2 lettres, par exemple MQ."
   }
 
+  if (
+    payload.image_cover_public_id &&
+    !isPublicIdInFolder(
+      payload.image_cover_public_id,
+      cloudinaryFolders.studioCover(payload.slug)
+    )
+  ) {
+    errors.image_cover_public_id = "L’image de couverture est invalide."
+  }
+
+  const expectedGalleryFolder = cloudinaryFolders.studioGallery(payload.slug)
+  const hasInvalidGalleryFolder = galleryImages.some(
+    (image) => !isPublicIdInFolder(image.image_public_id, expectedGalleryFolder)
+  )
+
   if (galleryError) {
     errors.gallery_images = galleryError
+  } else if (hasInvalidGalleryFolder) {
+    errors.gallery_images = "La galerie contient une image invalide."
   }
 
   return { payload, galleryImages, errors }
