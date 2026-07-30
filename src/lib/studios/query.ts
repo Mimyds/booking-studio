@@ -14,6 +14,7 @@ export const studioSelect = `
   city,
   country_code,
   pets_allowed,
+  is_published,
   updated_at,
   image_cover_public_id,
   short_description,
@@ -59,6 +60,10 @@ export async function fetchStudios(
 
   if (filters.petsAllowed !== undefined) {
     query = query.eq("pets_allowed", filters.petsAllowed)
+  }
+
+  if (filters.isPublished !== undefined) {
+    query = query.eq("is_published", filters.isPublished)
   }
 
   if (filters.minCapacity !== undefined) {

@@ -9,11 +9,11 @@ function normalizeFolderSegment(value: string) {
 }
 
 export const cloudinaryFolders = {
-  studioCover(slug: string) {
-    return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(slug)}/cover`
+  studioCover(folderId: string) {
+    return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(folderId)}/cover`
   },
-  studioGallery(slug: string) {
-    return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(slug)}/gallery`
+  studioGallery(folderId: string) {
+    return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(folderId)}/gallery`
   },
 }
 
@@ -33,6 +33,16 @@ export function isManagedCloudinaryPublicId(publicId: string) {
   return /^booking-studio\/studios\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|gallery)\/[^/]+$/.test(
     publicId.trim()
   )
+}
+
+export function getStudioCloudinaryFolderId(publicId: string) {
+  const match = publicId
+    .trim()
+    .match(
+      /^booking-studio\/studios\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(?:cover|gallery)\/[^/]+$/
+    )
+
+  return match?.[1] ?? null
 }
 
 export function isPublicIdInFolder(publicId: string, folder: string) {

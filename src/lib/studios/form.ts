@@ -1,7 +1,4 @@
-import {
-  cloudinaryFolders,
-  isPublicIdInFolder,
-} from "@/lib/cloudinary/config"
+import { isManagedCloudinaryPublicId } from "@/lib/cloudinary/config"
 
 export type StudioFormPayload = {
   slug: string
@@ -14,6 +11,7 @@ export type StudioFormPayload = {
   city: string | null
   country_code: string | null
   pets_allowed: boolean
+  is_published: boolean
   image_cover_public_id: string | null
   short_description: string | null
   welcome_title: string | null
@@ -126,6 +124,7 @@ export function parseStudioForm(formData: FormData): {
     city: getOptionalText(formData, "city"),
     country_code: getOptionalText(formData, "country_code")?.toUpperCase() ?? null,
     pets_allowed: formData.get("pets_allowed") === "on",
+    is_published: formData.get("is_published") === "on",
     image_cover_public_id: getOptionalText(
       formData,
       "image_cover_public_id"
@@ -167,17 +166,13 @@ export function parseStudioForm(formData: FormData): {
 
   if (
     payload.image_cover_public_id &&
-    !isPublicIdInFolder(
-      payload.image_cover_public_id,
-      cloudinaryFolders.studioCover(payload.slug)
-    )
+    !isManagedCloudinaryPublicId(payload.image_cover_public_id)
   ) {
     errors.image_cover_public_id = "L’image de couverture est invalide."
   }
 
-  const expectedGalleryFolder = cloudinaryFolders.studioGallery(payload.slug)
   const hasInvalidGalleryFolder = galleryImages.some(
-    (image) => !isPublicIdInFolder(image.image_public_id, expectedGalleryFolder)
+    (image) => !isManagedCloudinaryPublicId(image.image_public_id)
   )
 
   if (galleryError) {

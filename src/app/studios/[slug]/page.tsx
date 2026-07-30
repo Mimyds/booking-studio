@@ -17,6 +17,7 @@ export default async function StudioPage({ params }: StudioPageProps) {
     .from("studios")
     .select(studioSelect)
     .eq("slug", slug)
+    .eq("is_published", true)
     .single()
 
   if (studioError || !studioData) {

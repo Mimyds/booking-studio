@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getCurrentAdmin } from "@/lib/admin/auth"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { fetchStudios } from "@/lib/studios/query"
 import type { StudioOrderBy, StudiosFilters } from "@/lib/studios/types"
@@ -61,7 +62,7 @@ function getFilters(searchParams: URLSearchParams): StudiosFilters {
     city: searchParams.get("city") ?? undefined,
     countryCode: searchParams.get("countryCode") ?? undefined,
     petsAllowed: getBooleanParam(searchParams, "petsAllowed"),
-    isPublished: true,
+    isPublished: getBooleanParam(searchParams, "isPublished"),
     minCapacity: getNumberParam(searchParams, "minCapacity"),
     maxBasePrice: getNumberParam(searchParams, "maxBasePrice"),
     search: searchParams.get("search") ?? undefined,
@@ -69,6 +70,12 @@ function getFilters(searchParams: URLSearchParams): StudiosFilters {
 }
 
 export async function GET(request: NextRequest) {
+  const currentAdmin = await getCurrentAdmin()
+
+  if (!currentAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const { searchParams } = request.nextUrl
   const from = getNumberParam(searchParams, "from")
   const to = getNumberParam(searchParams, "to")
@@ -87,7 +94,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (error) {
-    console.error("Studios API error:", error)
+    console.error("Admin studios API error:", error)
 
     return NextResponse.json(
       { error: "Failed to fetch studios" },

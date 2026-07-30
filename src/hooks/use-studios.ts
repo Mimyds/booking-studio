@@ -14,6 +14,7 @@ export type UseStudiosFilters = StudiosFilters
 
 export type UseStudiosOptions = StudiosQueryOptions & {
   enabled?: boolean
+  endpoint?: "/api/studios" | "/api/admin/studios"
 }
 
 export type UseStudiosResult = {
@@ -26,6 +27,7 @@ export type UseStudiosResult = {
 function buildOptionsKey(options: UseStudiosOptions) {
   return JSON.stringify({
     enabled: options.enabled ?? true,
+    endpoint: options.endpoint ?? "/api/studios",
     filters: options.filters ?? {},
     pagination: options.pagination ?? null,
     orderBy: options.orderBy ?? "name",
@@ -36,6 +38,7 @@ function buildOptionsKey(options: UseStudiosOptions) {
 function buildStudiosUrl(options: UseStudiosOptions) {
   const searchParams = new URLSearchParams()
   const filters = options.filters ?? {}
+  const endpoint = options.endpoint ?? "/api/studios"
   const orderBy = options.orderBy ?? "name"
   const ascending = options.ascending ?? true
 
@@ -66,6 +69,10 @@ function buildStudiosUrl(options: UseStudiosOptions) {
     searchParams.set("petsAllowed", String(filters.petsAllowed))
   }
 
+  if (filters.isPublished !== undefined) {
+    searchParams.set("isPublished", String(filters.isPublished))
+  }
+
   if (filters.minCapacity !== undefined) {
     searchParams.set("minCapacity", String(filters.minCapacity))
   }
@@ -83,7 +90,7 @@ function buildStudiosUrl(options: UseStudiosOptions) {
     searchParams.set("to", String(options.pagination.to))
   }
 
-  return `/api/studios?${searchParams.toString()}`
+  return `${endpoint}?${searchParams.toString()}`
 }
 
 export function useStudios(options: UseStudiosOptions = {}): UseStudiosResult {

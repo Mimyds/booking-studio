@@ -22,6 +22,7 @@ import {
 import { useStudios, type Studio, type UseStudiosOptions } from "@/hooks/use-studios"
 
 type PetsFilter = "all" | "yes" | "no"
+type PublicationFilter = "all" | "published" | "draft"
 type CapacityFilter = "all" | "2" | "3" | "4"
 type SortFilter =
   | "name-asc"
@@ -81,6 +82,9 @@ function StudioCard({ studio }: { studio: Studio }) {
           <Badge variant="secondary">
             {studio.capacity} voyageur{studio.capacity > 1 ? "s" : ""}
           </Badge>
+          <Badge variant={studio.is_published ? "secondary" : "outline"}>
+            {studio.is_published ? "Publié" : "Brouillon"}
+          </Badge>
         </div>
 
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
@@ -121,7 +125,6 @@ function StudioCard({ studio }: { studio: Studio }) {
           <Badge variant={studio.pets_allowed ? "secondary" : "outline"}>
             {studio.pets_allowed ? "Animaux acceptés" : "Sans animaux"}
           </Badge>
-          <Badge variant="secondary">Inventaire actif</Badge>
         </div>
 
         <div className="grid gap-2">
@@ -133,9 +136,11 @@ function StudioCard({ studio }: { studio: Studio }) {
               Calendrier
             </Link>
           </Button>
-          <Button asChild variant="ghost">
-            <Link href={`/studios/${studio.slug}`}>Voir public</Link>
-          </Button>
+          {studio.is_published ? (
+            <Button asChild variant="ghost">
+              <Link href={`/studios/${studio.slug}`}>Voir public</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
     </article>
@@ -146,6 +151,7 @@ export function StudiosList() {
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("")
   const [petsAllowed, setPetsAllowed] = useState<PetsFilter>("all")
+  const [publication, setPublication] = useState<PublicationFilter>("all")
   const [capacity, setCapacity] = useState<CapacityFilter>("all")
   const [sort, setSort] = useState<SortFilter>("name-asc")
 
@@ -153,22 +159,26 @@ export function StudiosList() {
     const sortOptions = getSortOptions(sort)
 
     return {
+      endpoint: "/api/admin/studios",
       ...sortOptions,
       filters: {
         search: search.trim() || undefined,
         city: city.trim() || undefined,
         petsAllowed:
           petsAllowed === "all" ? undefined : petsAllowed === "yes",
+        isPublished:
+          publication === "all" ? undefined : publication === "published",
         minCapacity: capacity === "all" ? undefined : Number(capacity),
       },
     }
-  }, [capacity, city, petsAllowed, search, sort])
+  }, [capacity, city, petsAllowed, publication, search, sort])
 
   const { studios, error, isLoading, refetch } = useStudios(queryOptions)
   const hasFilters =
     search.trim() !== "" ||
     city.trim() !== "" ||
     petsAllowed !== "all" ||
+    publication !== "all" ||
     capacity !== "all" ||
     sort !== "name-asc"
 
@@ -176,6 +186,7 @@ export function StudiosList() {
     setSearch("")
     setCity("")
     setPetsAllowed("all")
+    setPublication("all")
     setCapacity("all")
     setSort("name-asc")
   }
@@ -183,7 +194,7 @@ export function StudiosList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Inventaire publié</CardTitle>
+        <CardTitle>Catalogue studios</CardTitle>
         <CardDescription>
           {isLoading
             ? "Chargement des studios..."
@@ -194,7 +205,7 @@ export function StudiosList() {
       </CardHeader>
       <CardContent>
         <div className="mb-5 grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_repeat(3,minmax(10rem,0.65fr))] gap-3 max-[1180px]:grid-cols-2 max-[640px]:grid-cols-1">
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_repeat(4,minmax(10rem,0.65fr))] gap-3 max-[1320px]:grid-cols-2 max-[640px]:grid-cols-1">
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -219,6 +230,22 @@ export function StudiosList() {
                 <SelectItem value="all">Animaux : tous</SelectItem>
                 <SelectItem value="yes">Animaux acceptés</SelectItem>
                 <SelectItem value="no">Sans animaux</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={publication}
+              onValueChange={(value) =>
+                setPublication(value as PublicationFilter)
+              }
+            >
+              <SelectTrigger className="w-full bg-white">
+                <SelectValue placeholder="Publication" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Statut : tous</SelectItem>
+                <SelectItem value="published">Publiés</SelectItem>
+                <SelectItem value="draft">Brouillons</SelectItem>
               </SelectContent>
             </Select>
 

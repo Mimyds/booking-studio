@@ -11,6 +11,7 @@ export type Studio = {
   city: string | null
   country_code: string | null
   pets_allowed: boolean
+  is_published: boolean
   updated_at: string
   image_cover_public_id: string | null
   short_description: string | null
@@ -40,6 +41,7 @@ export type StudiosFilters = {
   city?: string
   countryCode?: string
   petsAllowed?: boolean
+  isPublished?: boolean
   minCapacity?: number
   maxBasePrice?: number
   search?: string

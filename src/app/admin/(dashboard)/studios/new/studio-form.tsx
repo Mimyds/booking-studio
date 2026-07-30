@@ -18,6 +18,56 @@ import {
 
 const initialState: CreateStudioActionState = {}
 
+export type StudioFormInitialValues = {
+  slug: string
+  name: string
+  description: string
+  capacity: string
+  base_price: string
+  cleaning_fee: string
+  currency: string
+  city: string
+  country_code: string
+  pets_allowed: boolean
+  is_published: boolean
+  short_description: string
+  welcome_title: string
+  coverImage: StudioImageValue | null
+  galleryImages: StudioImageValue[]
+}
+
+type StudioFormAction = (
+  previousState: CreateStudioActionState,
+  formData: FormData
+) => Promise<CreateStudioActionState>
+
+type StudioFormProps = {
+  action?: StudioFormAction
+  cancelHref?: string
+  cloudinaryFolderId?: string
+  initialValues?: StudioFormInitialValues
+  pendingLabel?: string
+  submitLabel?: string
+}
+
+const defaultInitialValues: StudioFormInitialValues = {
+  slug: "",
+  name: "",
+  description: "",
+  capacity: "2",
+  base_price: "0",
+  cleaning_fee: "0",
+  currency: "EUR",
+  city: "",
+  country_code: "",
+  pets_allowed: false,
+  is_published: false,
+  short_description: "",
+  welcome_title: "",
+  coverImage: null,
+  galleryImages: [],
+}
+
 function FieldError({ message }: { message?: string }) {
   if (!message) {
     return null
@@ -26,38 +76,51 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs font-medium text-destructive">{message}</p>
 }
 
-function SubmitButton() {
+function SubmitButton({
+  pendingLabel,
+  submitLabel,
+}: {
+  pendingLabel: string
+  submitLabel: string
+}) {
   const { pending } = useFormStatus()
 
   return (
     <Button type="submit" size="lg" disabled={pending} className="min-w-40">
-      {pending ? "Création..." : "Créer le studio"}
+      {pending ? pendingLabel : submitLabel}
     </Button>
   )
 }
 
-export function StudioForm() {
-  const [state, formAction] = useActionState(createStudioAction, initialState)
-  const [name, setName] = useState("")
-  const [slug, setSlug] = useState("")
+export function StudioForm({
+  action = createStudioAction,
+  cancelHref = "/admin/studios",
+  cloudinaryFolderId,
+  initialValues = defaultInitialValues,
+  pendingLabel = "Création...",
+  submitLabel = "Créer le studio",
+}: StudioFormProps) {
+  const [state, formAction] = useActionState(action, initialState)
+  const [name, setName] = useState(initialValues.name)
+  const [slug, setSlug] = useState(initialValues.slug)
   const [isSlugEdited, setIsSlugEdited] = useState(false)
-  const [coverImage, setCoverImage] = useState<StudioImageValue | null>(null)
-  const [galleryImages, setGalleryImages] = useState<StudioImageValue[]>([])
-  const hasUploadedImages = Boolean(coverImage || galleryImages.length > 0)
+  const [coverImage, setCoverImage] = useState<StudioImageValue | null>(
+    initialValues.coverImage
+  )
+  const [galleryImages, setGalleryImages] = useState<StudioImageValue[]>(
+    initialValues.galleryImages
+  )
+  const uploadFolderId = cloudinaryFolderId ?? slug
 
   function handleNameChange(value: string) {
     setName(value)
 
-    if (!isSlugEdited && !hasUploadedImages) {
+    if (!isSlugEdited) {
       setSlug(slugifyStudioName(value))
     }
   }
 
   function handleSlugChange(value: string) {
-    if (hasUploadedImages) {
-      return
-    }
-
     setSlug(slugifyStudioName(value))
     setIsSlugEdited(value.trim() !== "")
   }
@@ -151,14 +214,11 @@ export function StudioForm() {
               placeholder="studio-jasmin"
               autoComplete="off"
               required
-              readOnly={hasUploadedImages}
               aria-invalid={Boolean(state.errors?.slug)}
               className="h-11"
             />
             <p className="text-xs text-slate-500">
-              {hasUploadedImages
-                ? "Le slug est verrouillé pour conserver les dossiers des images."
-                : `Adresse publique : /studios/${slug || "studio-jasmin"}`}
+              {`Adresse publique : /studios/${slug || "studio-jasmin"}`}
             </p>
             <FieldError message={state.errors?.slug} />
           </div>
@@ -173,6 +233,7 @@ export function StudioForm() {
             <Input
               id="welcome_title"
               name="welcome_title"
+              defaultValue={initialValues.welcome_title}
               placeholder="Bienvenue au Studio Jasmin"
               aria-invalid={Boolean(state.errors?.welcome_title)}
               className="h-11"
@@ -190,6 +251,7 @@ export function StudioForm() {
             <Input
               id="short_description"
               name="short_description"
+              defaultValue={initialValues.short_description}
               placeholder="Un cocon lumineux face à la mer"
               aria-invalid={Boolean(state.errors?.short_description)}
               className="h-11"
@@ -208,6 +270,7 @@ export function StudioForm() {
               id="description"
               name="description"
               rows={6}
+              defaultValue={initialValues.description}
               placeholder="Décrivez l’ambiance, les espaces et les points forts du studio..."
               aria-invalid={Boolean(state.errors?.description)}
               className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20"
@@ -242,7 +305,7 @@ export function StudioForm() {
               type="number"
               min="1"
               step="1"
-              defaultValue="2"
+              defaultValue={initialValues.capacity}
               required
               aria-invalid={Boolean(state.errors?.capacity)}
               className="h-11"
@@ -263,7 +326,7 @@ export function StudioForm() {
               type="number"
               min="0"
               step="0.01"
-              defaultValue="0"
+              defaultValue={initialValues.base_price}
               required
               aria-invalid={Boolean(state.errors?.base_price)}
               className="h-11"
@@ -284,7 +347,7 @@ export function StudioForm() {
               type="number"
               min="0"
               step="0.01"
-              defaultValue="0"
+              defaultValue={initialValues.cleaning_fee}
               required
               aria-invalid={Boolean(state.errors?.cleaning_fee)}
               className="h-11"
@@ -302,7 +365,7 @@ export function StudioForm() {
             <Input
               id="currency"
               name="currency"
-              defaultValue="EUR"
+              defaultValue={initialValues.currency}
               maxLength={3}
               required
               aria-invalid={Boolean(state.errors?.currency)}
@@ -331,6 +394,7 @@ export function StudioForm() {
             <Input
               id="city"
               name="city"
+              defaultValue={initialValues.city}
               placeholder="Les Trois-Îlets"
               aria-invalid={Boolean(state.errors?.city)}
               className="h-11"
@@ -348,6 +412,7 @@ export function StudioForm() {
             <Input
               id="country_code"
               name="country_code"
+              defaultValue={initialValues.country_code}
               placeholder="MQ"
               maxLength={2}
               aria-invalid={Boolean(state.errors?.country_code)}
@@ -360,6 +425,7 @@ export function StudioForm() {
             <input
               type="checkbox"
               name="pets_allowed"
+              defaultChecked={initialValues.pets_allowed}
               className="mt-0.5 size-4 rounded border-slate-300 accent-slate-950"
             />
             <span>
@@ -372,6 +438,23 @@ export function StudioForm() {
               </span>
             </span>
           </label>
+
+          <label className="col-span-2 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 max-[720px]:col-span-1">
+            <input
+              type="checkbox"
+              name="is_published"
+              defaultChecked={initialValues.is_published}
+              className="mt-0.5 size-4 rounded border-slate-300 accent-slate-950"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-800">
+                Publier le studio
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500">
+                Les brouillons restent visibles uniquement dans l’administration.
+              </span>
+            </span>
+          </label>
         </div>
       </section>
 
@@ -379,15 +462,15 @@ export function StudioForm() {
         <div className="border-b border-slate-100 pb-5">
           <h2 className="text-lg font-bold text-slate-950">Images</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Les images sont envoyées dans les dossiers Cloudinary associés au
-            slug du studio.
+            Les images sont envoyées dans un dossier Cloudinary stable,
+            indépendant du slug du studio.
           </p>
         </div>
 
-        {slug ? (
+        {uploadFolderId ? (
           <div className="mt-5 grid gap-6">
             <StudioImageUpload
-              folder={cloudinaryFolders.studioCover(slug)}
+              folder={cloudinaryFolders.studioCover(uploadFolderId)}
               images={coverImage ? [coverImage] : []}
               label="Choisir l’image de couverture"
               maxFiles={1}
@@ -398,7 +481,7 @@ export function StudioForm() {
 
             <div className="border-t border-slate-100 pt-6">
               <StudioImageUpload
-                folder={cloudinaryFolders.studioGallery(slug)}
+                folder={cloudinaryFolders.studioGallery(uploadFolderId)}
                 images={galleryImages}
                 label="Ajouter des images à la galerie"
                 maxFiles={12}
@@ -429,9 +512,12 @@ export function StudioForm() {
         </p>
         <div className="flex justify-end gap-3">
           <Button asChild type="button" variant="outline" size="lg">
-            <Link href="/admin/studios">Annuler</Link>
+            <Link href={cancelHref}>Annuler</Link>
           </Button>
-          <SubmitButton />
+          <SubmitButton
+            pendingLabel={pendingLabel}
+            submitLabel={submitLabel}
+          />
         </div>
       </div>
     </form>
