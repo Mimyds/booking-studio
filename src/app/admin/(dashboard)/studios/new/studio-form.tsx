@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
+import { LoaderCircle, Plus, X } from "lucide-react"
 import {
   StudioImageUpload,
   type StudioImageValue,
@@ -34,6 +35,14 @@ export type StudioFormInitialValues = {
   welcome_title: string
   coverImage: StudioImageValue | null
   galleryImages: StudioImageValue[]
+  amenityIds: number[]
+}
+
+export type StudioAmenityOption = {
+  id: number
+  label: string
+  icon_name: string | null
+  description: string | null
 }
 
 type StudioFormAction = (
@@ -43,6 +52,7 @@ type StudioFormAction = (
 
 type StudioFormProps = {
   action?: StudioFormAction
+  amenityOptions?: StudioAmenityOption[]
   cancelHref?: string
   cloudinaryFolderId?: string
   initialValues?: StudioFormInitialValues
@@ -66,6 +76,7 @@ const defaultInitialValues: StudioFormInitialValues = {
   welcome_title: "",
   coverImage: null,
   galleryImages: [],
+  amenityIds: [],
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -92,8 +103,249 @@ function SubmitButton({
   )
 }
 
+type CreateAmenityResponse = {
+  amenity?: StudioAmenityOption
+  error?: string
+}
+
+function sortAmenityOptions(amenities: StudioAmenityOption[]) {
+  return amenities.toSorted((firstAmenity, secondAmenity) =>
+    firstAmenity.label.localeCompare(secondAmenity.label, "fr")
+  )
+}
+
+function AmenitiesField({
+  error,
+  initialOptions,
+  initialSelectedIds,
+}: {
+  error?: string
+  initialOptions: StudioAmenityOption[]
+  initialSelectedIds: number[]
+}) {
+  const [options, setOptions] = useState(initialOptions)
+  const [selectedIds, setSelectedIds] = useState(initialSelectedIds)
+  const [amenityToAdd, setAmenityToAdd] = useState("")
+  const [newAmenityLabel, setNewAmenityLabel] = useState("")
+  const [newAmenityIconName, setNewAmenityIconName] = useState("")
+  const [newAmenityDescription, setNewAmenityDescription] = useState("")
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const selectedOptions = selectedIds
+    .map((selectedId) => options.find((option) => option.id === selectedId))
+    .filter((option): option is StudioAmenityOption => Boolean(option))
+  const availableOptions = options.filter(
+    (option) => !selectedIds.includes(option.id)
+  )
+
+  function addAmenity(amenityId: number) {
+    setSelectedIds((currentIds) =>
+      currentIds.includes(amenityId) ? currentIds : [...currentIds, amenityId]
+    )
+  }
+
+  function removeAmenity(amenityId: number) {
+    setSelectedIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== amenityId)
+    )
+  }
+
+  function handleAddExistingAmenity() {
+    const amenityId = Number(amenityToAdd)
+
+    if (!Number.isInteger(amenityId) || amenityId < 1) {
+      return
+    }
+
+    addAmenity(amenityId)
+    setAmenityToAdd("")
+  }
+
+  async function handleCreateAmenity() {
+    const label = newAmenityLabel.trim()
+
+    if (!label) {
+      setCreateError("Le nom de l’équipement est requis.")
+      return
+    }
+
+    setIsCreating(true)
+    setCreateError(null)
+
+    try {
+      const response = await fetch("/api/admin/amenities", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label,
+          icon_name: newAmenityIconName.trim() || null,
+          description: newAmenityDescription.trim() || null,
+        }),
+      })
+      const result = (await response.json().catch(() => null)) as
+        | CreateAmenityResponse
+        | null
+
+      if (!response.ok || !result?.amenity) {
+        throw new Error(result?.error || "L’équipement n’a pas pu être créé.")
+      }
+
+      setOptions((currentOptions) =>
+        sortAmenityOptions([...currentOptions, result.amenity!])
+      )
+      addAmenity(result.amenity.id)
+      setNewAmenityLabel("")
+      setNewAmenityIconName("")
+      setNewAmenityDescription("")
+    } catch (amenityError) {
+      setCreateError(
+        amenityError instanceof Error
+          ? amenityError.message
+          : "L’équipement n’a pas pu être créé."
+      )
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/5">
+      {selectedIds.map((amenityId) => (
+        <input
+          key={amenityId}
+          type="hidden"
+          name="amenity_ids"
+          value={amenityId}
+        />
+      ))}
+
+      <div className="border-b border-slate-100 pb-5">
+        <h2 className="text-lg font-bold text-slate-950">Équipements</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Sélectionnez les équipements proposés dans ce studio.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-5">
+        <div className="grid gap-3">
+          <p className="text-sm font-semibold text-slate-700">
+            Équipements liés
+          </p>
+          {selectedOptions.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedOptions.map((amenity) => (
+                <span
+                  key={amenity.id}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800"
+                >
+                  {amenity.label}
+                  <button
+                    type="button"
+                    onClick={() => removeAmenity(amenity.id)}
+                    className="rounded-md p-0.5 text-slate-500 hover:bg-white hover:text-slate-950"
+                    aria-label={`Retirer ${amenity.label}`}
+                  >
+                    <X aria-hidden="true" className="size-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+              Aucun équipement associé.
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 max-[640px]:grid-cols-1">
+          <select
+            value={amenityToAdd}
+            onChange={(event) => setAmenityToAdd(event.target.value)}
+            disabled={availableOptions.length === 0}
+            className="h-11 rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">
+              {availableOptions.length > 0
+                ? "Choisir un équipement"
+                : "Aucun équipement disponible"}
+            </option>
+            {availableOptions.map((amenity) => (
+              <option key={amenity.id} value={amenity.id}>
+                {amenity.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAddExistingAmenity}
+            disabled={!amenityToAdd}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter
+          </Button>
+        </div>
+
+        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700">
+            Nouvel équipement
+          </p>
+          <div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
+            <Input
+              value={newAmenityLabel}
+              onChange={(event) => setNewAmenityLabel(event.target.value)}
+              placeholder="Piscine"
+              className="bg-white"
+            />
+            <Input
+              value={newAmenityIconName}
+              onChange={(event) => setNewAmenityIconName(event.target.value)}
+              placeholder="waves"
+              className="bg-white"
+            />
+            <Input
+              value={newAmenityDescription}
+              onChange={(event) =>
+                setNewAmenityDescription(event.target.value)
+              }
+              placeholder="Accès piscine partagé"
+              className="col-span-2 bg-white max-[720px]:col-span-1"
+            />
+          </div>
+          {createError ? (
+            <p className="text-xs font-medium text-destructive">
+              {createError}
+            </p>
+          ) : null}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleCreateAmenity()}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <LoaderCircle className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus aria-hidden="true" />
+              )}
+              Créer et associer
+            </Button>
+          </div>
+        </div>
+
+        <FieldError message={error} />
+      </div>
+    </section>
+  )
+}
+
 export function StudioForm({
   action = createStudioAction,
+  amenityOptions = [],
   cancelHref = "/admin/studios",
   cloudinaryFolderId,
   initialValues = defaultInitialValues,
@@ -279,6 +531,12 @@ export function StudioForm({
           </div>
         </div>
       </section>
+
+      <AmenitiesField
+        error={state.errors?.amenity_ids}
+        initialOptions={amenityOptions}
+        initialSelectedIds={initialValues.amenityIds}
+      />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/5">
         <div className="border-b border-slate-100 pb-5">

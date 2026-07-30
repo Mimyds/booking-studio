@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { getStudioCloudinaryFolderId } from "@/lib/cloudinary/config"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { studioSelect } from "@/lib/studios/query"
-import type { Studio, StudioGalleryImage } from "@/lib/studios/types"
+import type { Amenity, Studio, StudioGalleryImage } from "@/lib/studios/types"
 import {
   StudioForm,
+  type StudioAmenityOption,
   type StudioFormInitialValues,
 } from "../../new/studio-form"
 import { updateStudioAction } from "./actions"
@@ -77,7 +78,33 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
     throw new Error("Impossible de charger la galerie du studio.")
   }
 
+  const { data: amenityData, error: amenityError } = await supabase
+    .from("amenities")
+    .select("id, created_at, label, icon_name, description")
+    .order("label", { ascending: true })
+
+  if (amenityError) {
+    throw new Error("Impossible de charger les équipements.")
+  }
+
+  const { data: studioAmenityData, error: studioAmenityError } = await supabase
+    .from("studio_amenities")
+    .select("amenity_id")
+    .eq("studio_id", studio.id)
+
+  if (studioAmenityError) {
+    throw new Error("Impossible de charger les équipements du studio.")
+  }
+
   const galleryImages = (galleryData ?? []) as StudioGalleryImage[]
+  const amenityOptions: StudioAmenityOption[] = ((amenityData ?? []) as Amenity[]).map(
+    (amenity) => ({
+      id: amenity.id,
+      label: amenity.label,
+      icon_name: amenity.icon_name,
+      description: amenity.description,
+    })
+  )
   const cloudinaryFolderId = getExistingCloudinaryFolderId(
     studio,
     galleryImages
@@ -106,6 +133,7 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
       image_public_id: image.image_public_id,
       alt_text: image.alt_text ?? "",
     })),
+    amenityIds: (studioAmenityData ?? []).map((amenity) => amenity.amenity_id),
   }
   const action = updateStudioAction.bind(null, studio.id)
 
@@ -129,6 +157,7 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
 
       <StudioForm
         action={action}
+        amenityOptions={amenityOptions}
         cancelHref="/admin/studios"
         cloudinaryFolderId={cloudinaryFolderId}
         initialValues={initialValues}
