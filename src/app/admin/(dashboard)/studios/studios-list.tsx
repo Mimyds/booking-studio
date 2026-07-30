@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { LoaderCircle, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,7 +71,15 @@ function getSortOptions(sort: SortFilter): Pick<
   return { orderBy: "name", ascending: true }
 }
 
-function StudioCard({ studio }: { studio: Studio }) {
+function StudioCard({
+  isDeleting,
+  onDelete,
+  studio,
+}: {
+  isDeleting: boolean
+  onDelete: (studio: Studio) => void
+  studio: Studio
+}) {
   return (
     <article className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 max-[900px]:grid-cols-1">
       <div className="min-w-0">
@@ -141,6 +150,19 @@ function StudioCard({ studio }: { studio: Studio }) {
               <Link href={`/studios/${studio.slug}`}>Voir public</Link>
             </Button>
           ) : null}
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => onDelete(studio)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <LoaderCircle className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Trash2 aria-hidden="true" />
+            )}
+            Supprimer
+          </Button>
         </div>
       </div>
     </article>
@@ -154,6 +176,8 @@ export function StudiosList() {
   const [publication, setPublication] = useState<PublicationFilter>("all")
   const [capacity, setCapacity] = useState<CapacityFilter>("all")
   const [sort, setSort] = useState<SortFilter>("name-asc")
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingStudioId, setDeletingStudioId] = useState<number | null>(null)
 
   const queryOptions = useMemo<UseStudiosOptions>(() => {
     const sortOptions = getSortOptions(sort)
@@ -189,6 +213,45 @@ export function StudiosList() {
     setPublication("all")
     setCapacity("all")
     setSort("name-asc")
+  }
+
+  async function handleDeleteStudio(studio: Studio) {
+    const shouldDelete = window.confirm(
+      `Supprimer définitivement le studio "${studio.name}" ?`
+    )
+
+    if (!shouldDelete) {
+      return
+    }
+
+    setDeletingStudioId(studio.id)
+    setDeleteError(null)
+
+    try {
+      const response = await fetch(`/api/admin/studios/${studio.id}`, {
+        method: "DELETE",
+        headers: {
+          accept: "application/json",
+        },
+      })
+      const result = (await response.json().catch(() => null)) as {
+        error?: string
+      } | null
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Le studio n’a pas pu être supprimé.")
+      }
+
+      await refetch()
+    } catch (deleteStudioError) {
+      setDeleteError(
+        deleteStudioError instanceof Error
+          ? deleteStudioError.message
+          : "Le studio n’a pas pu être supprimé."
+      )
+    } finally {
+      setDeletingStudioId(null)
+    }
   }
 
   return (
@@ -311,6 +374,12 @@ export function StudiosList() {
           </div>
         ) : null}
 
+        {deleteError ? (
+          <div className="mb-5 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {deleteError}
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="grid min-h-72 place-items-center rounded-3xl bg-slate-50 text-center text-sm text-slate-500">
             Chargement des studios...
@@ -318,7 +387,12 @@ export function StudiosList() {
         ) : studios.length > 0 ? (
           <div className="grid gap-4">
             {studios.map((studio) => (
-              <StudioCard key={studio.id} studio={studio} />
+              <StudioCard
+                key={studio.id}
+                isDeleting={deletingStudioId === studio.id}
+                onDelete={handleDeleteStudio}
+                studio={studio}
+              />
             ))}
           </div>
         ) : (

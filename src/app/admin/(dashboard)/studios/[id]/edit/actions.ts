@@ -14,6 +14,18 @@ function getRemovedPublicIds(previousPublicIds: string[], nextPublicIds: string[
   return previousPublicIds.filter((publicId) => !nextPublicIdsSet.has(publicId))
 }
 
+function getAddedIds(previousIds: number[], nextIds: number[]) {
+  const previousIdsSet = new Set(previousIds)
+
+  return nextIds.filter((id) => !previousIdsSet.has(id))
+}
+
+function getRemovedIds(previousIds: number[], nextIds: number[]) {
+  const nextIdsSet = new Set(nextIds)
+
+  return previousIds.filter((id) => !nextIdsSet.has(id))
+}
+
 export async function updateStudioAction(
   studioId: number,
   _previousState: CreateStudioActionState,
@@ -29,7 +41,7 @@ export async function updateStudioAction(
     return { error: "Le studio est introuvable." }
   }
 
-  const { payload, galleryImages, errors } = parseStudioForm(formData)
+  const { payload, galleryImages, amenityIds, errors } = parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -63,6 +75,23 @@ export async function updateStudioAction(
 
     return {
       error: "Les images de galerie n’ont pas pu être chargées.",
+    }
+  }
+
+  const { data: existingAmenityData, error: existingAmenityError } =
+    await supabase
+      .from("studio_amenities")
+      .select("amenity_id")
+      .eq("studio_id", studioId)
+
+  if (existingAmenityError) {
+    console.error("[update-studio] Amenities select failed", {
+      code: existingAmenityError.code,
+      message: existingAmenityError.message,
+    })
+
+    return {
+      error: "Les équipements du studio n’ont pas pu être chargés.",
     }
   }
 
@@ -175,6 +204,53 @@ export async function updateStudioAction(
 
       return {
         error: "Les images retirées n’ont pas pu être supprimées.",
+      }
+    }
+  }
+
+  const previousAmenityIds = (existingAmenityData ?? []).map(
+    (amenity) => amenity.amenity_id
+  )
+  const addedAmenityIds = getAddedIds(previousAmenityIds, amenityIds)
+  const removedAmenityIds = getRemovedIds(previousAmenityIds, amenityIds)
+
+  if (removedAmenityIds.length > 0) {
+    const { error: amenityDeleteError } = await supabase
+      .from("studio_amenities")
+      .delete()
+      .eq("studio_id", studioId)
+      .in("amenity_id", removedAmenityIds)
+
+    if (amenityDeleteError) {
+      console.error("[update-studio] Amenities delete failed", {
+        code: amenityDeleteError.code,
+        message: amenityDeleteError.message,
+      })
+
+      return {
+        error: "Les équipements retirés n’ont pas pu être enregistrés.",
+      }
+    }
+  }
+
+  if (addedAmenityIds.length > 0) {
+    const { error: amenityInsertError } = await supabase
+      .from("studio_amenities")
+      .insert(
+        addedAmenityIds.map((amenityId) => ({
+          studio_id: studioId,
+          amenity_id: amenityId,
+        }))
+      )
+
+    if (amenityInsertError) {
+      console.error("[update-studio] Amenities insert failed", {
+        code: amenityInsertError.code,
+        message: amenityInsertError.message,
+      })
+
+      return {
+        error: "Les équipements ajoutés n’ont pas pu être enregistrés.",
       }
     }
   }

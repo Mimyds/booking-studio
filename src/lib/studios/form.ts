@@ -36,6 +36,7 @@ export type StudioFormErrors = Partial<
     | "country_code"
     | "image_cover_public_id"
     | "gallery_images"
+    | "amenity_ids"
     | "short_description"
     | "welcome_title",
     string
@@ -105,14 +106,33 @@ export function parseStudioGalleryImages(value: FormDataEntryValue | null) {
   }
 }
 
+export function parseStudioAmenityIds(formData: FormData) {
+  const rawAmenityIds = formData.getAll("amenity_ids")
+  const amenityIds = rawAmenityIds
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0)
+  const uniqueAmenityIds = Array.from(new Set(amenityIds))
+
+  if (amenityIds.length !== rawAmenityIds.length) {
+    return {
+      amenityIds: uniqueAmenityIds,
+      error: "Les équipements sont invalides.",
+    }
+  }
+
+  return { amenityIds: uniqueAmenityIds }
+}
+
 export function parseStudioForm(formData: FormData): {
   payload: StudioFormPayload
   galleryImages: StudioGalleryImageInput[]
+  amenityIds: number[]
   errors: StudioFormErrors
 } {
   const { galleryImages, error: galleryError } = parseStudioGalleryImages(
     formData.get("gallery_images")
   )
+  const { amenityIds, error: amenityIdsError } = parseStudioAmenityIds(formData)
   const payload: StudioFormPayload = {
     slug: getText(formData, "slug").toLowerCase(),
     name: getText(formData, "name"),
@@ -181,5 +201,9 @@ export function parseStudioForm(formData: FormData): {
     errors.gallery_images = "La galerie contient une image invalide."
   }
 
-  return { payload, galleryImages, errors }
+  if (amenityIdsError) {
+    errors.amenity_ids = amenityIdsError
+  }
+
+  return { payload, galleryImages, amenityIds, errors }
 }

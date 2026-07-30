@@ -27,6 +27,21 @@ export type StudioGalleryImage = {
   alt_text: string | null
 }
 
+export type Amenity = {
+  id: number
+  created_at: string
+  label: string
+  icon_name: string | null
+  description: string | null
+}
+
+export type StudioAmenity = {
+  id: number
+  created_at: string
+  studio_id: number
+  amenity_id: number
+}
+
 export type StudioOrderBy =
   | "created_at"
   | "name"

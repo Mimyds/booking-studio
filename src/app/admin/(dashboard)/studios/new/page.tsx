@@ -3,15 +3,35 @@ import type { Metadata } from "next"
 import { randomUUID } from "node:crypto"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { StudioForm } from "./studio-form"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { Amenity } from "@/lib/studios/types"
+import { StudioForm, type StudioAmenityOption } from "./studio-form"
 
 export const metadata: Metadata = {
   title: "Nouveau studio | The Studio",
   description: "Création d’un studio dans le catalogue The Studio.",
 }
 
-export default function NewStudioPage() {
+export default async function NewStudioPage() {
   const cloudinaryFolderId = randomUUID()
+  const supabase = await createServerSupabaseClient()
+  const { data: amenityData, error: amenityError } = await supabase
+    .from("amenities")
+    .select("id, created_at, label, icon_name, description")
+    .order("label", { ascending: true })
+
+  if (amenityError) {
+    throw new Error("Impossible de charger les équipements.")
+  }
+
+  const amenityOptions: StudioAmenityOption[] = (
+    (amenityData ?? []) as Amenity[]
+  ).map((amenity) => ({
+    id: amenity.id,
+    label: amenity.label,
+    icon_name: amenity.icon_name,
+    description: amenity.description,
+  }))
 
   return (
     <main className="grid gap-6">
@@ -32,7 +52,10 @@ export default function NewStudioPage() {
         </Button>
       </section>
 
-      <StudioForm cloudinaryFolderId={cloudinaryFolderId} />
+      <StudioForm
+        amenityOptions={amenityOptions}
+        cloudinaryFolderId={cloudinaryFolderId}
+      />
     </main>
   )
 }

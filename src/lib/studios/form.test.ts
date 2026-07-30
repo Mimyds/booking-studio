@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  parseStudioAmenityIds,
   parseStudioForm,
   parseStudioGalleryImages,
   slugifyStudioName,
@@ -25,6 +26,9 @@ describe("parseStudioForm", () => {
     formData.set("country_code", "mq")
     formData.set("pets_allowed", "on")
     formData.set("is_published", "on")
+    formData.append("amenity_ids", "1")
+    formData.append("amenity_ids", "2")
+    formData.append("amenity_ids", "1")
     formData.set(
       "image_cover_public_id",
       "booking-studio/studios/studio-creole/cover/image"
@@ -63,6 +67,7 @@ describe("parseStudioForm", () => {
         sort_order: 0,
       },
     ])
+    expect(result.amenityIds).toEqual([1, 2])
   })
 
   it("returns errors for invalid required values", () => {
@@ -144,6 +149,19 @@ describe("parseStudioGalleryImages", () => {
 
     expect(parseStudioGalleryImages(value)).toMatchObject({
       galleryImages: [],
+      error: expect.any(String),
+    })
+  })
+})
+
+describe("parseStudioAmenityIds", () => {
+  it("rejects invalid amenity ids", () => {
+    const formData = new FormData()
+    formData.append("amenity_ids", "1")
+    formData.append("amenity_ids", "invalid")
+
+    expect(parseStudioAmenityIds(formData)).toMatchObject({
+      amenityIds: [1],
       error: expect.any(String),
     })
   })

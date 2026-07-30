@@ -12,6 +12,23 @@ export type CreateStudioActionState = {
   errors?: StudioFormErrors
 }
 
+async function rollbackCreatedStudio(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  studioId: number
+) {
+  const { error: rollbackError } = await supabase
+    .from("studios")
+    .delete()
+    .eq("id", studioId)
+
+  if (rollbackError) {
+    console.error("[create-studio] Studio rollback failed", {
+      code: rollbackError.code,
+      message: rollbackError.message,
+    })
+  }
+}
+
 export async function createStudioAction(
   _previousState: CreateStudioActionState,
   formData: FormData
@@ -22,7 +39,7 @@ export async function createStudioAction(
     return { error: "Votre session a expiré. Reconnectez-vous pour continuer." }
   }
 
-  const { payload, galleryImages, errors } = parseStudioForm(formData)
+  const { payload, galleryImages, amenityIds, errors } = parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -84,17 +101,7 @@ export async function createStudioAction(
         message: galleryError.message,
       })
 
-      const { error: rollbackError } = await supabase
-        .from("studios")
-        .delete()
-        .eq("id", studio.id)
-
-      if (rollbackError) {
-        console.error("[create-studio] Studio rollback failed", {
-          code: rollbackError.code,
-          message: rollbackError.message,
-        })
-      }
+      await rollbackCreatedStudio(supabase, studio.id)
 
       await destroyCloudinaryAssets([
         payload.image_cover_public_id,
@@ -104,6 +111,36 @@ export async function createStudioAction(
       return {
         error:
           "Les images de galerie n’ont pas pu être enregistrées. Le studio n’a pas été créé.",
+      }
+    }
+  }
+
+  if (amenityIds.length > 0) {
+    const { error: amenityError } = await supabase
+      .from("studio_amenities")
+      .insert(
+        amenityIds.map((amenityId) => ({
+          studio_id: studio.id,
+          amenity_id: amenityId,
+        }))
+      )
+
+    if (amenityError) {
+      console.error("[create-studio] Amenities insert failed", {
+        code: amenityError.code,
+        message: amenityError.message,
+      })
+
+      await rollbackCreatedStudio(supabase, studio.id)
+
+      await destroyCloudinaryAssets([
+        payload.image_cover_public_id,
+        ...galleryImages.map((image) => image.image_public_id),
+      ])
+
+      return {
+        error:
+          "Les équipements n’ont pas pu être enregistrés. Le studio n’a pas été créé.",
       }
     }
   }
