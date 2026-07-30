@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
+import { randomUUID } from "node:crypto"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { StudioForm } from "./studio-form"
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 }
 
 export default function NewStudioPage() {
+  const cloudinaryFolderId = randomUUID()
+
   return (
     <main className="grid gap-6">
       <section className="flex items-start justify-between gap-4 max-[720px]:grid">
@@ -29,7 +32,7 @@ export default function NewStudioPage() {
         </Button>
       </section>
 
-      <StudioForm />
+      <StudioForm cloudinaryFolderId={cloudinaryFolderId} />
     </main>
   )
 }

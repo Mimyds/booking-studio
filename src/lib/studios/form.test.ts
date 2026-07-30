@@ -24,6 +24,7 @@ describe("parseStudioForm", () => {
     formData.set("currency", "eur")
     formData.set("country_code", "mq")
     formData.set("pets_allowed", "on")
+    formData.set("is_published", "on")
     formData.set(
       "image_cover_public_id",
       "booking-studio/studios/studio-creole/cover/image"
@@ -50,6 +51,7 @@ describe("parseStudioForm", () => {
       currency: "EUR",
       country_code: "MQ",
       pets_allowed: true,
+      is_published: true,
       image_cover_public_id:
         "booking-studio/studios/studio-creole/cover/image",
     })
@@ -76,6 +78,18 @@ describe("parseStudioForm", () => {
     })
   })
 
+  it("defaults new studios to draft when publication is not checked", () => {
+    const formData = new FormData()
+    formData.set("name", "Studio Brouillon")
+    formData.set("slug", "studio-brouillon")
+    formData.set("capacity", "2")
+    formData.set("base_price", "125.50")
+    formData.set("cleaning_fee", "30")
+    formData.set("currency", "eur")
+
+    expect(parseStudioForm(formData).payload.is_published).toBe(false)
+  })
+
   it("rejects Cloudinary public ids outside the studio folders", () => {
     const formData = new FormData()
     formData.set("name", "Studio Créole")
@@ -94,6 +108,30 @@ describe("parseStudioForm", () => {
       image_cover_public_id: expect.any(String),
       gallery_images: expect.any(String),
     })
+  })
+
+  it("allows managed Cloudinary public ids when the slug changes", () => {
+    const formData = new FormData()
+    formData.set("name", "Studio Hibiscus")
+    formData.set("slug", "studio-hibiscus")
+    formData.set("capacity", "2")
+    formData.set("base_price", "125.50")
+    formData.set("cleaning_fee", "30")
+    formData.set("currency", "eur")
+    formData.set(
+      "image_cover_public_id",
+      "booking-studio/studios/studio-42/cover/image"
+    )
+    formData.set(
+      "gallery_images",
+      JSON.stringify([
+        {
+          image_public_id: "booking-studio/studios/studio-42/gallery/image",
+        },
+      ])
+    )
+
+    expect(parseStudioForm(formData).errors).toEqual({})
   })
 })
 
