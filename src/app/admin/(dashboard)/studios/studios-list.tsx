@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
-import { LoaderCircle, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { CheckCircle2, LoaderCircle, Trash2, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -73,11 +73,11 @@ function getSortOptions(sort: SortFilter): Pick<
 
 function StudioCard({
   isDeleting,
-  onDelete,
+  onRequestDelete,
   studio,
 }: {
   isDeleting: boolean
-  onDelete: (studio: Studio) => void
+  onRequestDelete: (studio: Studio) => void
   studio: Studio
 }) {
   return (
@@ -153,7 +153,7 @@ function StudioCard({
           <Button
             type="button"
             variant="destructive"
-            onClick={() => onDelete(studio)}
+            onClick={() => onRequestDelete(studio)}
             disabled={isDeleting}
           >
             {isDeleting ? (
@@ -169,6 +169,136 @@ function StudioCard({
   )
 }
 
+function DeleteStudioDialog({
+  error,
+  isDeleting,
+  onClose,
+  onConfirm,
+  studio,
+}: {
+  error: string | null
+  isDeleting: boolean
+  onClose: () => void
+  onConfirm: () => void
+  studio: Studio | null
+}) {
+  if (!studio) {
+    return null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4"
+      role="presentation"
+    >
+      <div
+        aria-describedby="delete-studio-description"
+        aria-labelledby="delete-studio-title"
+        aria-modal="true"
+        role="dialog"
+        className="grid w-full max-w-lg gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/25"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2
+              id="delete-studio-title"
+              className="text-lg font-bold text-slate-950"
+            >
+              Supprimer le studio
+            </h2>
+            <p
+              id="delete-studio-description"
+              className="mt-2 text-sm leading-6 text-slate-500"
+            >
+              Cette action supprimera définitivement “{studio.name}” du
+              catalogue admin.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            disabled={isDeleting}
+            aria-label="Fermer"
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
+
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm leading-6 text-destructive">
+          Les images Cloudinary liées seront supprimées après la suppression en
+          base. La suppression sera refusée si le studio est lié à des
+          réservations ou disponibilités.
+        </div>
+
+        {error ? (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end gap-3 max-[480px]:grid">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isDeleting}
+          >
+            Annuler
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <LoaderCircle className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Trash2 aria-hidden="true" />
+            )}
+            Supprimer définitivement
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SuccessToast({
+  message,
+  onClose,
+}: {
+  message: string | null
+  onClose: () => void
+}) {
+  if (!message) {
+    return null
+  }
+
+  return (
+    <div
+      role="status"
+      className="fixed right-5 bottom-5 z-50 flex max-w-sm items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 text-sm text-slate-700 shadow-xl shadow-slate-950/15 max-[560px]:right-4 max-[560px]:bottom-4 max-[560px]:left-4 max-[560px]:max-w-none"
+    >
+      <CheckCircle2
+        className="mt-0.5 size-4 text-emerald-600"
+        aria-hidden="true"
+      />
+      <p className="min-w-0 flex-1 font-medium">{message}</p>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-md p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Fermer la notification"
+      >
+        <X aria-hidden="true" className="size-4" />
+      </button>
+    </div>
+  )
+}
+
 export function StudiosList() {
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("")
@@ -178,6 +308,8 @@ export function StudiosList() {
   const [sort, setSort] = useState<SortFilter>("name-asc")
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingStudioId, setDeletingStudioId] = useState<number | null>(null)
+  const [studioToDelete, setStudioToDelete] = useState<Studio | null>(null)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
 
   const queryOptions = useMemo<UseStudiosOptions>(() => {
     const sortOptions = getSortOptions(sort)
@@ -215,17 +347,30 @@ export function StudiosList() {
     setSort("name-asc")
   }
 
-  async function handleDeleteStudio(studio: Studio) {
-    const shouldDelete = window.confirm(
-      `Supprimer définitivement le studio "${studio.name}" ?`
-    )
+  function openDeleteStudioDialog(studio: Studio) {
+    setDeleteError(null)
+    setSuccessToast(null)
+    setStudioToDelete(studio)
+  }
 
-    if (!shouldDelete) {
+  function closeDeleteStudioDialog() {
+    if (deletingStudioId) {
       return
     }
 
+    setDeleteError(null)
+    setStudioToDelete(null)
+  }
+
+  async function handleConfirmDeleteStudio() {
+    if (!studioToDelete) {
+      return
+    }
+
+    const studio = studioToDelete
     setDeletingStudioId(studio.id)
     setDeleteError(null)
+    setSuccessToast(null)
 
     try {
       const response = await fetch(`/api/admin/studios/${studio.id}`, {
@@ -243,6 +388,8 @@ export function StudiosList() {
       }
 
       await refetch()
+      setStudioToDelete(null)
+      setSuccessToast(`Le studio “${studio.name}” a été supprimé.`)
     } catch (deleteStudioError) {
       setDeleteError(
         deleteStudioError instanceof Error
@@ -254,7 +401,20 @@ export function StudiosList() {
     }
   }
 
+  useEffect(() => {
+    if (!successToast) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSuccessToast(null)
+    }, 4000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [successToast])
+
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Catalogue studios</CardTitle>
@@ -374,12 +534,6 @@ export function StudiosList() {
           </div>
         ) : null}
 
-        {deleteError ? (
-          <div className="mb-5 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {deleteError}
-          </div>
-        ) : null}
-
         {isLoading ? (
           <div className="grid min-h-72 place-items-center rounded-3xl bg-slate-50 text-center text-sm text-slate-500">
             Chargement des studios...
@@ -390,7 +544,7 @@ export function StudiosList() {
               <StudioCard
                 key={studio.id}
                 isDeleting={deletingStudioId === studio.id}
-                onDelete={handleDeleteStudio}
+                onRequestDelete={openDeleteStudioDialog}
                 studio={studio}
               />
             ))}
@@ -420,5 +574,19 @@ export function StudiosList() {
         )}
       </CardContent>
     </Card>
+    <DeleteStudioDialog
+      error={deleteError}
+      isDeleting={Boolean(
+        studioToDelete && deletingStudioId === studioToDelete.id
+      )}
+      onClose={closeDeleteStudioDialog}
+      onConfirm={() => void handleConfirmDeleteStudio()}
+      studio={studioToDelete}
+    />
+    <SuccessToast
+      message={successToast}
+      onClose={() => setSuccessToast(null)}
+    />
+    </>
   )
 }
