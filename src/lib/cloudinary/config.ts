@@ -9,6 +9,9 @@ function normalizeFolderSegment(value: string) {
 }
 
 export const cloudinaryFolders = {
+  addonImage(folderId: string) {
+    return `${cloudinaryRootFolder}/add-ons/${normalizeFolderSegment(folderId)}/image`
+  },
   studioCover(folderId: string) {
     return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(folderId)}/cover`
   },
@@ -24,14 +27,37 @@ export const cloudinaryUploadOptions = {
 }
 
 export function isManagedCloudinaryFolder(folder: string) {
-  return /^booking-studio\/studios\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|gallery)$/.test(
-    folder
+  const normalizedFolder = folder.trim()
+
+  return (
+    /^booking-studio\/studios\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|gallery)$/.test(
+      normalizedFolder
+    ) ||
+    /^booking-studio\/add-ons\/[a-z0-9]+(?:-[a-z0-9]+)*\/image$/.test(
+      normalizedFolder
+    ) ||
+    /^booking-studio\/add-ons\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
+      normalizedFolder
+    )
+  )
+}
+
+export function isManagedStudioCloudinaryPublicId(publicId: string) {
+  return /^booking-studio\/studios\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|gallery)\/[^/]+$/.test(
+    publicId.trim()
+  )
+}
+
+export function isManagedAddonCloudinaryPublicId(publicId: string) {
+  return /^booking-studio\/add-ons\/[a-z0-9]+(?:-[a-z0-9]+)*\/image\/[^/]+$/.test(
+    publicId.trim()
   )
 }
 
 export function isManagedCloudinaryPublicId(publicId: string) {
-  return /^booking-studio\/studios\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|gallery)\/[^/]+$/.test(
-    publicId.trim()
+  return (
+    isManagedStudioCloudinaryPublicId(publicId) ||
+    isManagedAddonCloudinaryPublicId(publicId)
   )
 }
 
@@ -43,6 +69,28 @@ export function getStudioCloudinaryFolderId(publicId: string) {
     )
 
   return match?.[1] ?? null
+}
+
+export function getAddonCloudinaryFolderId(publicId: string) {
+  const match = publicId
+    .trim()
+    .match(
+      /^booking-studio\/add-ons\/([a-z0-9]+(?:-[a-z0-9]+)*)\/image\/[^/]+$/
+    )
+
+  return match?.[1] ?? null
+}
+
+export function getAddonCloudinaryFolderPaths(publicId: string) {
+  const folderId = getAddonCloudinaryFolderId(publicId)
+
+  if (!folderId) {
+    return []
+  }
+
+  const addonFolder = `${cloudinaryRootFolder}/add-ons/${folderId}`
+
+  return [`${addonFolder}/image`, addonFolder]
 }
 
 export function isPublicIdInFolder(publicId: string, folder: string) {

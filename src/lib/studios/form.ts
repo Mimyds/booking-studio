@@ -1,4 +1,4 @@
-import { isManagedCloudinaryPublicId } from "@/lib/cloudinary/config"
+import { isManagedStudioCloudinaryPublicId } from "@/lib/cloudinary/config"
 
 export type StudioFormPayload = {
   slug: string
@@ -186,13 +186,13 @@ export function parseStudioForm(formData: FormData): {
 
   if (
     payload.image_cover_public_id &&
-    !isManagedCloudinaryPublicId(payload.image_cover_public_id)
+    !isManagedStudioCloudinaryPublicId(payload.image_cover_public_id)
   ) {
     errors.image_cover_public_id = "L’image de couverture est invalide."
   }
 
   const hasInvalidGalleryFolder = galleryImages.some(
-    (image) => !isManagedCloudinaryPublicId(image.image_public_id)
+    (image) => !isManagedStudioCloudinaryPublicId(image.image_public_id)
   )
 
   if (galleryError) {

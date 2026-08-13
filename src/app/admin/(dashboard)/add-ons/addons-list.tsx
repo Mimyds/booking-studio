@@ -1,7 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useMemo, useState } from "react"
-import { LoaderCircle, Plus, X } from "lucide-react"
+import { LoaderCircle, Plus, Trash2, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,25 +26,6 @@ import { useAddons, type Addon, type UseAddonsOptions } from "@/hooks/use-addons
 type StatusFilter = "all" | "active" | "inactive"
 type PriceFilter = "all" | "0-25" | "25-50" | "50-plus"
 type SortFilter = "name-asc" | "created-desc" | "price-asc" | "price-desc"
-type CreateAddonStatus = "active" | "inactive"
-
-type CreateAddonPayload = {
-  cloudinary_public_id: string
-  cloudinary_url: string
-  description: string
-  is_active: boolean
-  name: string
-  price: string
-}
-
-const initialCreateAddonPayload: CreateAddonPayload = {
-  cloudinary_public_id: "",
-  cloudinary_url: "",
-  description: "",
-  is_active: true,
-  name: "",
-  price: "",
-}
 
 function formatCurrency(value: number | string) {
   return new Intl.NumberFormat("fr-FR", {
@@ -96,98 +78,124 @@ function getSortOptions(sort: SortFilter): Pick<
   return { orderBy: "name", ascending: true }
 }
 
-function AddonCard({ addon }: { addon: Addon }) {
+function AddonCard({
+  addon,
+  isDeleting,
+  onRequestDelete,
+}: {
+  addon: Addon
+  isDeleting: boolean
+  onRequestDelete: (addon: Addon) => void
+}) {
   return (
-    <article className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-base font-bold text-slate-950">
-              {addon.name}
-            </h2>
-            <Badge variant={addon.is_active ? "secondary" : "outline"}>
-              {addon.is_active ? "Actif" : "Inactif"}
-            </Badge>
+    <article className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/5 max-[900px]:grid-cols-1">
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-base font-bold text-slate-950">
+                {addon.name}
+              </h2>
+              <Badge variant={addon.is_active ? "secondary" : "outline"}>
+                {addon.is_active ? "Actif" : "Inactif"}
+              </Badge>
+            </div>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              {addon.description ?? "Aucune description renseignée."}
+            </p>
           </div>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            {addon.description ?? "Aucune description renseignée."}
+          <p className="shrink-0 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950">
+            {formatCurrency(addon.price)}
           </p>
         </div>
-        <p className="shrink-0 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-950">
-          {formatCurrency(addon.price)}
-        </p>
+
+        <div className="grid grid-cols-3 gap-3 text-sm max-[720px]:grid-cols-1">
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-500">Création</p>
+            <p className="mt-1 font-semibold text-slate-950">
+              {formatDate(addon.created_at)}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-500">Image</p>
+            <p className="mt-1 truncate font-semibold text-slate-950">
+              {addon.cloudinary_url ? "Renseignée" : "Non renseignée"}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-500">Référence</p>
+            <p className="mt-1 truncate font-semibold text-slate-950">
+              {addon.cloudinary_public_id ?? `addon-${addon.id}`}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-sm max-[720px]:grid-cols-1">
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Création</p>
-          <p className="mt-1 font-semibold text-slate-950">
-            {formatDate(addon.created_at)}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Image</p>
-          <p className="mt-1 truncate font-semibold text-slate-950">
-            {addon.cloudinary_url ? "Renseignée" : "Non renseignée"}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-500">Référence</p>
-          <p className="mt-1 truncate font-semibold text-slate-950">
-            {addon.cloudinary_public_id ?? `addon-${addon.id}`}
-          </p>
-        </div>
+      <div className="flex min-w-40 flex-col justify-end gap-2 rounded-2xl bg-slate-50 p-3 max-[900px]:min-w-0">
+        <Button asChild variant="outline">
+          <Link href={`/admin/add-ons/${addon.id}/edit`}>Modifier</Link>
+        </Button>
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => onRequestDelete(addon)}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <LoaderCircle className="animate-spin" aria-hidden="true" />
+          ) : (
+            <Trash2 aria-hidden="true" />
+          )}
+          Supprimer
+        </Button>
       </div>
     </article>
   )
 }
 
-function CreateAddonDialog({
+function DeleteAddonDialog({
+  addon,
   error,
-  form,
-  isSubmitting,
-  onChange,
+  isDeleting,
   onClose,
-  onSubmit,
+  onConfirm,
 }: {
+  addon: Addon | null
   error: string | null
-  form: CreateAddonPayload
-  isSubmitting: boolean
-  onChange: (nextForm: CreateAddonPayload) => void
+  isDeleting: boolean
   onClose: () => void
-  onSubmit: () => void
+  onConfirm: () => void
 }) {
-  const statusValue: CreateAddonStatus = form.is_active ? "active" : "inactive"
+  if (!addon) {
+    return null
+  }
 
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4"
       role="presentation"
     >
-      <form
-        aria-describedby="create-addon-description"
-        aria-labelledby="create-addon-title"
+      <div
+        aria-describedby="delete-addon-description"
+        aria-labelledby="delete-addon-title"
         aria-modal="true"
         role="dialog"
-        className="grid w-full max-w-2xl gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/25"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onSubmit()
-        }}
+        className="grid w-full max-w-lg gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/25"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2
-              id="create-addon-title"
+              id="delete-addon-title"
               className="text-lg font-bold text-slate-950"
             >
-              Nouvel add-on
+              Supprimer l’add-on
             </h2>
             <p
-              id="create-addon-description"
+              id="delete-addon-description"
               className="mt-2 text-sm leading-6 text-slate-500"
             >
-              Ajoutez une option complémentaire au catalogue de réservation.
+              Cette action supprimera définitivement “{addon.name}” du
+              catalogue admin.
             </p>
           </div>
           <Button
@@ -195,103 +203,17 @@ function CreateAddonDialog({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isDeleting}
             aria-label="Fermer"
           >
             <X aria-hidden="true" />
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            Nom
-            <Input
-              value={form.name}
-              onChange={(event) =>
-                onChange({ ...form, name: event.target.value })
-              }
-              placeholder="Ex. Petit-déjeuner"
-              className="bg-white"
-              required
-              disabled={isSubmitting}
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            Prix
-            <Input
-              value={form.price}
-              onChange={(event) =>
-                onChange({ ...form, price: event.target.value })
-              }
-              placeholder="Ex. 25"
-              className="bg-white"
-              inputMode="decimal"
-              required
-              disabled={isSubmitting}
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            Statut
-            <Select
-              value={statusValue}
-              onValueChange={(value) =>
-                onChange({ ...form, is_active: value === "active" })
-              }
-              disabled={isSubmitting}
-            >
-              <SelectTrigger className="w-full bg-white">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Actif</SelectItem>
-                <SelectItem value="inactive">Inactif</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            Description
-            <Input
-              value={form.description}
-              onChange={(event) =>
-                onChange({ ...form, description: event.target.value })
-              }
-              placeholder="Description courte"
-              className="bg-white"
-              disabled={isSubmitting}
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            URL image
-            <Input
-              value={form.cloudinary_url}
-              onChange={(event) =>
-                onChange({ ...form, cloudinary_url: event.target.value })
-              }
-              placeholder="https://..."
-              className="bg-white"
-              disabled={isSubmitting}
-            />
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-slate-700">
-            Public ID Cloudinary
-            <Input
-              value={form.cloudinary_public_id}
-              onChange={(event) =>
-                onChange({
-                  ...form,
-                  cloudinary_public_id: event.target.value,
-                })
-              }
-              placeholder="addons/..."
-              className="bg-white"
-              disabled={isSubmitting}
-            />
-          </label>
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm leading-6 text-destructive">
+          L’image Cloudinary liée sera supprimée après la suppression en base. La
+          suppression sera refusée si l’add-on est déjà lié à des données de
+          réservation.
         </div>
 
         {error ? (
@@ -305,20 +227,25 @@ function CreateAddonDialog({
             type="button"
             variant="outline"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isDeleting}
           >
             Annuler
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <LoaderCircle data-icon="inline-start" className="animate-spin" aria-hidden="true" />
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <LoaderCircle className="animate-spin" aria-hidden="true" />
             ) : (
-              <Plus data-icon="inline-start" aria-hidden="true" />
+              <Trash2 aria-hidden="true" />
             )}
-            Créer l’add-on
+            Supprimer définitivement
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
@@ -328,12 +255,9 @@ export function AddonsList() {
   const [status, setStatus] = useState<StatusFilter>("all")
   const [price, setPrice] = useState<PriceFilter>("all")
   const [sort, setSort] = useState<SortFilter>("name-asc")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [createForm, setCreateForm] = useState<CreateAddonPayload>(
-    initialCreateAddonPayload
-  )
-  const [createError, setCreateError] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
+  const [addonToDelete, setAddonToDelete] = useState<Addon | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingAddonId, setDeletingAddonId] = useState<number | null>(null)
 
   const queryOptions = useMemo<UseAddonsOptions>(() => {
     const sortOptions = getSortOptions(sort)
@@ -364,55 +288,54 @@ export function AddonsList() {
     setSort("name-asc")
   }
 
-  function openCreateDialog() {
-    setCreateError(null)
-    setCreateForm(initialCreateAddonPayload)
-    setIsCreateDialogOpen(true)
+  function openDeleteAddonDialog(addon: Addon) {
+    setDeleteError(null)
+    setAddonToDelete(addon)
   }
 
-  function closeCreateDialog() {
-    if (isCreating) {
+  function closeDeleteAddonDialog() {
+    if (deletingAddonId) {
       return
     }
 
-    setCreateError(null)
-    setIsCreateDialogOpen(false)
+    setDeleteError(null)
+    setAddonToDelete(null)
   }
 
-  async function handleCreateAddon() {
-    setIsCreating(true)
-    setCreateError(null)
+  async function handleConfirmDeleteAddon() {
+    if (!addonToDelete) {
+      return
+    }
+
+    const addon = addonToDelete
+    setDeletingAddonId(addon.id)
+    setDeleteError(null)
 
     try {
-      const response = await fetch("/api/admin/add-ons", {
-        method: "POST",
+      const response = await fetch(`/api/admin/add-ons/${addon.id}`, {
+        method: "DELETE",
         headers: {
           accept: "application/json",
-          "content-type": "application/json",
         },
-        body: JSON.stringify(createForm),
       })
       const result = (await response.json().catch(() => null)) as {
         error?: string
       } | null
 
       if (!response.ok) {
-        throw new Error(result?.error || "L’add-on n’a pas pu être créé.")
+        throw new Error(result?.error || "L’add-on n’a pas pu être supprimé.")
       }
 
-      setIsCreateDialogOpen(false)
-      setCreateForm(initialCreateAddonPayload)
-      resetFilters()
-      setSort("created-desc")
       await refetch()
-    } catch (createAddonError) {
-      setCreateError(
-        createAddonError instanceof Error
-          ? createAddonError.message
-          : "L’add-on n’a pas pu être créé."
+      setAddonToDelete(null)
+    } catch (deleteAddonError) {
+      setDeleteError(
+        deleteAddonError instanceof Error
+          ? deleteAddonError.message
+          : "L’add-on n’a pas pu être supprimé."
       )
     } finally {
-      setIsCreating(false)
+      setDeletingAddonId(null)
     }
   }
 
@@ -429,21 +352,23 @@ export function AddonsList() {
                 }.`}
           </CardDescription>
           <CardAction>
-            <Button type="button" onClick={openCreateDialog}>
-              <Plus data-icon="inline-start" aria-hidden="true" />
-              Nouvel add-on
+            <Button asChild>
+              <Link href="/admin/add-ons/new">
+                <Plus data-icon="inline-start" aria-hidden="true" />
+                Nouvel add-on
+              </Link>
             </Button>
           </CardAction>
         </CardHeader>
         <CardContent>
-        <div className="mb-5 grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-          <div className="grid grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(10rem,0.7fr))] gap-3 max-[1080px]:grid-cols-2 max-[640px]:grid-cols-1">
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Rechercher nom, description..."
-              className="bg-white"
-            />
+          <div className="mb-5 grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+            <div className="grid grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(10rem,0.7fr))] gap-3 max-[1080px]:grid-cols-2 max-[640px]:grid-cols-1">
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Rechercher nom, description..."
+                className="bg-white"
+              />
 
             <Select
               value={status}
@@ -519,14 +444,19 @@ export function AddonsList() {
             {error.message}
           </div>
         ) : isLoading ? (
-          <div className="flex min-h-40 items-center justify-center rounded-3xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-500">
+          <div className="flex min-h-40 items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-500">
             <LoaderCircle className="animate-spin" aria-hidden="true" />
             Chargement des add-ons...
           </div>
         ) : addons.length > 0 ? (
           <div className="grid gap-4">
             {addons.map((addon) => (
-              <AddonCard key={addon.id} addon={addon} />
+              <AddonCard
+                key={addon.id}
+                addon={addon}
+                isDeleting={deletingAddonId === addon.id}
+                onRequestDelete={openDeleteAddonDialog}
+              />
             ))}
           </div>
         ) : (
@@ -537,16 +467,13 @@ export function AddonsList() {
         </CardContent>
       </Card>
 
-      {isCreateDialogOpen ? (
-        <CreateAddonDialog
-          error={createError}
-          form={createForm}
-          isSubmitting={isCreating}
-          onChange={setCreateForm}
-          onClose={closeCreateDialog}
-          onSubmit={handleCreateAddon}
-        />
-      ) : null}
+      <DeleteAddonDialog
+        addon={addonToDelete}
+        error={deleteError}
+        isDeleting={Boolean(deletingAddonId)}
+        onClose={closeDeleteAddonDialog}
+        onConfirm={handleConfirmDeleteAddon}
+      />
     </>
   )
 }

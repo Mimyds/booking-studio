@@ -1,5 +1,9 @@
 import crypto from "crypto"
-import { isManagedCloudinaryPublicId } from "@/lib/cloudinary/config"
+import {
+  getAddonCloudinaryFolderPaths,
+  isManagedCloudinaryFolder,
+  isManagedCloudinaryPublicId,
+} from "@/lib/cloudinary/config"
 
 type CloudinaryAdminConfig = {
   apiKey: string
@@ -138,6 +142,58 @@ export async function destroyCloudinaryAsset(publicId: string) {
   }
 
   return { ok: true, result }
+}
+
+export async function destroyCloudinaryFolder(folder: string) {
+  const config = getCloudinaryAdminConfig()
+  const normalizedFolder = folder.trim()
+
+  if (!config) {
+    return { ok: false, error: "Missing Cloudinary server configuration." }
+  }
+
+  if (!isManagedCloudinaryFolder(normalizedFolder)) {
+    return { ok: false, error: "Invalid Cloudinary folder." }
+  }
+
+  const credentials = Buffer.from(
+    `${config.apiKey}:${config.apiSecret}`
+  ).toString("base64")
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/folders/${encodeURIComponent(
+      normalizedFolder
+    )}`,
+    {
+      method: "DELETE",
+      headers: {
+        authorization: `Basic ${credentials}`,
+      },
+    }
+  )
+  const result = (await response.json().catch(() => null)) as unknown
+
+  if (!response.ok) {
+    return { ok: false, error: "Cloudinary folder deletion failed.", result }
+  }
+
+  return { ok: true, result }
+}
+
+export async function destroyAddonCloudinaryFolders(publicId: string | null) {
+  if (!publicId) {
+    return []
+  }
+
+  const folders = getAddonCloudinaryFolderPaths(publicId)
+  const results = []
+
+  for (const folder of folders) {
+    const result = await destroyCloudinaryFolder(folder)
+
+    results.push({ folder, result })
+  }
+
+  return results
 }
 
 export async function destroyCloudinaryAssets(publicIds: Array<string | null>) {
