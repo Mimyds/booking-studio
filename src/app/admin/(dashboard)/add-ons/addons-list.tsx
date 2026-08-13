@@ -78,6 +78,46 @@ function getSortOptions(sort: SortFilter): Pick<
   return { orderBy: "name", ascending: true }
 }
 
+function StudioUsageTooltip({ addon }: { addon: Addon }) {
+  const studioNames = addon.studio_names ?? []
+  const studioCount = addon.studio_count ?? studioNames.length
+  const tooltipId = `addon-${addon.id}-studios-tooltip`
+
+  return (
+    <div className="group relative w-full">
+      <button
+        type="button"
+        aria-describedby={tooltipId}
+        className="w-full rounded-2xl bg-slate-50 p-3 text-left outline-none transition focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <span className="block text-xs font-medium text-slate-500">
+          Studios rattachés
+        </span>
+        <span className="mt-1 block font-semibold text-slate-950">
+          {studioCount} studio{studioCount > 1 ? "s" : ""}
+        </span>
+      </button>
+      <div
+        id={tooltipId}
+        role="tooltip"
+        className="pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-0 z-20 w-max max-w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600 opacity-0 shadow-xl shadow-slate-950/15 transition group-focus-within:opacity-100 group-hover:opacity-100"
+      >
+        {studioNames.length > 0 ? (
+          <ul className="grid gap-1">
+            {studioNames.map((studioName) => (
+              <li key={studioName} className="font-medium text-slate-800">
+                {studioName}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>Aucun studio rattaché.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function AddonCard({
   addon,
   isDeleting,
@@ -109,25 +149,14 @@ function AddonCard({
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-sm max-[720px]:grid-cols-1">
+        <div className="grid grid-cols-2 gap-3 text-sm max-[720px]:grid-cols-1">
           <div className="rounded-2xl bg-slate-50 p-3">
             <p className="text-xs font-medium text-slate-500">Création</p>
             <p className="mt-1 font-semibold text-slate-950">
               {formatDate(addon.created_at)}
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs font-medium text-slate-500">Image</p>
-            <p className="mt-1 truncate font-semibold text-slate-950">
-              {addon.cloudinary_url ? "Renseignée" : "Non renseignée"}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs font-medium text-slate-500">Référence</p>
-            <p className="mt-1 truncate font-semibold text-slate-950">
-              {addon.cloudinary_public_id ?? `addon-${addon.id}`}
-            </p>
-          </div>
+          <StudioUsageTooltip addon={addon} />
         </div>
       </div>
 

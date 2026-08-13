@@ -36,6 +36,7 @@ export type StudioFormInitialValues = {
   coverImage: StudioImageValue | null
   galleryImages: StudioImageValue[]
   amenityIds: number[]
+  addonIds: number[]
 }
 
 export type StudioAmenityOption = {
@@ -45,6 +46,14 @@ export type StudioAmenityOption = {
   description: string | null
 }
 
+export type StudioAddonOption = {
+  id: number
+  name: string
+  description: string | null
+  price: number | string
+  is_active: boolean
+}
+
 type StudioFormAction = (
   previousState: CreateStudioActionState,
   formData: FormData
@@ -52,6 +61,7 @@ type StudioFormAction = (
 
 type StudioFormProps = {
   action?: StudioFormAction
+  addonOptions?: StudioAddonOption[]
   amenityOptions?: StudioAmenityOption[]
   cancelHref?: string
   cloudinaryFolderId?: string
@@ -77,6 +87,7 @@ const defaultInitialValues: StudioFormInitialValues = {
   coverImage: null,
   galleryImages: [],
   amenityIds: [],
+  addonIds: [],
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -343,8 +354,145 @@ function AmenitiesField({
   )
 }
 
+function formatAddonPrice(value: number | string) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(Number(value ?? 0))
+}
+
+function AddonsField({
+  error,
+  initialOptions,
+  initialSelectedIds,
+}: {
+  error?: string
+  initialOptions: StudioAddonOption[]
+  initialSelectedIds: number[]
+}) {
+  const [selectedIds, setSelectedIds] = useState(initialSelectedIds)
+  const [addonToAdd, setAddonToAdd] = useState("")
+  const selectedOptions = selectedIds
+    .map((selectedId) => initialOptions.find((option) => option.id === selectedId))
+    .filter((option): option is StudioAddonOption => Boolean(option))
+  const availableOptions = initialOptions.filter(
+    (option) => !selectedIds.includes(option.id)
+  )
+
+  function addAddon(addonId: number) {
+    setSelectedIds((currentIds) =>
+      currentIds.includes(addonId) ? currentIds : [...currentIds, addonId]
+    )
+  }
+
+  function removeAddon(addonId: number) {
+    setSelectedIds((currentIds) =>
+      currentIds.filter((currentId) => currentId !== addonId)
+    )
+  }
+
+  function handleAddExistingAddon() {
+    const addonId = Number(addonToAdd)
+
+    if (!Number.isInteger(addonId) || addonId < 1) {
+      return
+    }
+
+    addAddon(addonId)
+    setAddonToAdd("")
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/5">
+      {selectedIds.map((addonId) => (
+        <input key={addonId} type="hidden" name="addon_ids" value={addonId} />
+      ))}
+
+      <div className="border-b border-slate-100 pb-5">
+        <h2 className="text-lg font-bold text-slate-950">Add-ons</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Sélectionnez les options complémentaires disponibles pour ce studio.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-5">
+        <div className="grid gap-3">
+          <p className="text-sm font-semibold text-slate-700">
+            Add-ons liés
+          </p>
+          {selectedOptions.length > 0 ? (
+            <div className="grid gap-2">
+              {selectedOptions.map((addon) => (
+                <div
+                  key={addon.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 max-[560px]:grid"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold">{addon.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {formatAddonPrice(addon.price)}
+                      {addon.is_active ? "" : " · inactif"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAddon(addon.id)}
+                  >
+                    <X aria-hidden="true" />
+                    Retirer
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+              Aucun add-on associé.
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 max-[640px]:grid-cols-1">
+          <select
+            value={addonToAdd}
+            onChange={(event) => setAddonToAdd(event.target.value)}
+            disabled={availableOptions.length === 0}
+            className="h-11 rounded-lg border border-input bg-white px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">
+              {availableOptions.length > 0
+                ? "Choisir un add-on"
+                : "Aucun add-on disponible"}
+            </option>
+            {availableOptions.map((addon) => (
+              <option key={addon.id} value={addon.id}>
+                {addon.name} · {formatAddonPrice(addon.price)}
+                {addon.is_active ? "" : " · inactif"}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAddExistingAddon}
+            disabled={!addonToAdd}
+          >
+            <Plus aria-hidden="true" />
+            Ajouter
+          </Button>
+        </div>
+
+        <FieldError message={error} />
+      </div>
+    </section>
+  )
+}
+
 export function StudioForm({
   action = createStudioAction,
+  addonOptions = [],
   amenityOptions = [],
   cancelHref = "/admin/studios",
   cloudinaryFolderId,
@@ -536,6 +684,12 @@ export function StudioForm({
         error={state.errors?.amenity_ids}
         initialOptions={amenityOptions}
         initialSelectedIds={initialValues.amenityIds}
+      />
+
+      <AddonsField
+        error={state.errors?.addon_ids}
+        initialOptions={addonOptions}
+        initialSelectedIds={initialValues.addonIds}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-950/5">

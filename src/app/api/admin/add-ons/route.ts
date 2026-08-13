@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { fetchAddons } from "@/lib/addons/query"
-import type { AddonOrderBy, AddonsFilters } from "@/lib/addons/types"
+import type { Addon, AddonOrderBy, AddonsFilters } from "@/lib/addons/types"
 import { getCurrentAdmin } from "@/lib/admin/auth"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 const addonOrderColumns = ["created_at", "name", "price"] satisfies AddonOrderBy[]
+
+type StudioAddonJoin = {
+  addon_id: number
+  studios: { name: string | null } | { name: string | null }[] | null
+}
 
 function getNumberParam(searchParams: URLSearchParams, key: string) {
   const value = searchParams.get(key)
@@ -59,6 +64,63 @@ function getFilters(searchParams: URLSearchParams): AddonsFilters {
   }
 }
 
+function getStudioName(row: StudioAddonJoin) {
+  const studio = Array.isArray(row.studios) ? row.studios[0] : row.studios
+
+  return typeof studio?.name === "string" ? studio.name : null
+}
+
+async function attachStudioUsage(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  addons: Addon[]
+) {
+  if (addons.length === 0) {
+    return addons
+  }
+
+  const addonIds = addons.map((addon) => addon.id)
+  const { data, error } = await supabase
+    .from("studio_addons")
+    .select("addon_id, studios(name)")
+    .in("addon_id", addonIds)
+
+  if (error) {
+    console.error("Admin add-ons studio usage API error:", error)
+
+    return addons.map((addon) => ({
+      ...addon,
+      studio_count: 0,
+      studio_names: [],
+    }))
+  }
+
+  const usageByAddonId = new Map<number, string[]>()
+
+  for (const row of (data ?? []) as StudioAddonJoin[]) {
+    const studioName = getStudioName(row)
+
+    if (!studioName) {
+      continue
+    }
+
+    const currentNames = usageByAddonId.get(row.addon_id) ?? []
+
+    usageByAddonId.set(row.addon_id, [...currentNames, studioName])
+  }
+
+  return addons.map((addon) => {
+    const studioNames = (usageByAddonId.get(addon.id) ?? []).toSorted((a, b) =>
+      a.localeCompare(b, "fr")
+    )
+
+    return {
+      ...addon,
+      studio_count: studioNames.length,
+      studio_names: studioNames,
+    }
+  })
+}
+
 export async function GET(request: NextRequest) {
   const currentAdmin = await getCurrentAdmin()
 
@@ -92,5 +154,7 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  return NextResponse.json({ addons })
+  const addonsWithUsage = await attachStudioUsage(supabase, addons)
+
+  return NextResponse.json({ addons: addonsWithUsage })
 }

@@ -3,9 +3,14 @@ import type { Metadata } from "next"
 import { randomUUID } from "node:crypto"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { Addon } from "@/lib/addons/types"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { Amenity } from "@/lib/studios/types"
-import { StudioForm, type StudioAmenityOption } from "./studio-form"
+import {
+  StudioForm,
+  type StudioAddonOption,
+  type StudioAmenityOption,
+} from "./studio-form"
 
 export const metadata: Metadata = {
   title: "Nouveau studio | The Studio",
@@ -24,6 +29,17 @@ export default async function NewStudioPage() {
     throw new Error("Impossible de charger les équipements.")
   }
 
+  const { data: addonData, error: addonError } = await supabase
+    .from("addons")
+    .select(
+      "id, created_at, name, description, price, is_active, cloudinary_url, cloudinary_public_id"
+    )
+    .order("name", { ascending: true })
+
+  if (addonError) {
+    throw new Error("Impossible de charger les add-ons.")
+  }
+
   const amenityOptions: StudioAmenityOption[] = (
     (amenityData ?? []) as Amenity[]
   ).map((amenity) => ({
@@ -32,6 +48,15 @@ export default async function NewStudioPage() {
     icon_name: amenity.icon_name,
     description: amenity.description,
   }))
+  const addonOptions: StudioAddonOption[] = ((addonData ?? []) as Addon[]).map(
+    (addon) => ({
+      id: addon.id,
+      name: addon.name,
+      description: addon.description,
+      price: addon.price,
+      is_active: addon.is_active,
+    })
+  )
 
   return (
     <main className="grid gap-6">
@@ -53,6 +78,7 @@ export default async function NewStudioPage() {
       </section>
 
       <StudioForm
+        addonOptions={addonOptions}
         amenityOptions={amenityOptions}
         cloudinaryFolderId={cloudinaryFolderId}
       />

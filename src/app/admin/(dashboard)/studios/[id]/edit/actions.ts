@@ -41,7 +41,8 @@ export async function updateStudioAction(
     return { error: "Le studio est introuvable." }
   }
 
-  const { payload, galleryImages, amenityIds, errors } = parseStudioForm(formData)
+  const { payload, galleryImages, amenityIds, addonIds, errors } =
+    parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -92,6 +93,22 @@ export async function updateStudioAction(
 
     return {
       error: "Les équipements du studio n’ont pas pu être chargés.",
+    }
+  }
+
+  const { data: existingAddonData, error: existingAddonError } = await supabase
+    .from("studio_addons")
+    .select("addon_id")
+    .eq("studio_id", studioId)
+
+  if (existingAddonError) {
+    console.error("[update-studio] Add-ons select failed", {
+      code: existingAddonError.code,
+      message: existingAddonError.message,
+    })
+
+    return {
+      error: "Les add-ons du studio n’ont pas pu être chargés.",
     }
   }
 
@@ -251,6 +268,51 @@ export async function updateStudioAction(
 
       return {
         error: "Les équipements ajoutés n’ont pas pu être enregistrés.",
+      }
+    }
+  }
+
+  const previousAddonIds = (existingAddonData ?? []).map((addon) => addon.addon_id)
+  const addedAddonIds = getAddedIds(previousAddonIds, addonIds)
+  const removedAddonIds = getRemovedIds(previousAddonIds, addonIds)
+
+  if (removedAddonIds.length > 0) {
+    const { error: addonDeleteError } = await supabase
+      .from("studio_addons")
+      .delete()
+      .eq("studio_id", studioId)
+      .in("addon_id", removedAddonIds)
+
+    if (addonDeleteError) {
+      console.error("[update-studio] Add-ons delete failed", {
+        code: addonDeleteError.code,
+        message: addonDeleteError.message,
+      })
+
+      return {
+        error: "Les add-ons retirés n’ont pas pu être enregistrés.",
+      }
+    }
+  }
+
+  if (addedAddonIds.length > 0) {
+    const { error: addonInsertError } = await supabase
+      .from("studio_addons")
+      .insert(
+        addedAddonIds.map((addonId) => ({
+          studio_id: studioId,
+          addon_id: addonId,
+        }))
+      )
+
+    if (addonInsertError) {
+      console.error("[update-studio] Add-ons insert failed", {
+        code: addonInsertError.code,
+        message: addonInsertError.message,
+      })
+
+      return {
+        error: "Les add-ons ajoutés n’ont pas pu être enregistrés.",
       }
     }
   }

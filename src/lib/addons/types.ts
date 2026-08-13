@@ -7,6 +7,8 @@ export type Addon = {
   is_active: boolean
   cloudinary_url: string | null
   cloudinary_public_id: string | null
+  studio_count?: number
+  studio_names?: string[]
 }
 
 export type AddonOrderBy = "created_at" | "name" | "price"

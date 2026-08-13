@@ -3,12 +3,14 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { Addon } from "@/lib/addons/types"
 import { getStudioCloudinaryFolderId } from "@/lib/cloudinary/config"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { studioSelect } from "@/lib/studios/query"
 import type { Amenity, Studio, StudioGalleryImage } from "@/lib/studios/types"
 import {
   StudioForm,
+  type StudioAddonOption,
   type StudioAmenityOption,
   type StudioFormInitialValues,
 } from "../../new/studio-form"
@@ -96,6 +98,26 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
     throw new Error("Impossible de charger les équipements du studio.")
   }
 
+  const { data: addonData, error: addonError } = await supabase
+    .from("addons")
+    .select(
+      "id, created_at, name, description, price, is_active, cloudinary_url, cloudinary_public_id"
+    )
+    .order("name", { ascending: true })
+
+  if (addonError) {
+    throw new Error("Impossible de charger les add-ons.")
+  }
+
+  const { data: studioAddonData, error: studioAddonError } = await supabase
+    .from("studio_addons")
+    .select("addon_id")
+    .eq("studio_id", studio.id)
+
+  if (studioAddonError) {
+    throw new Error("Impossible de charger les add-ons du studio.")
+  }
+
   const galleryImages = (galleryData ?? []) as StudioGalleryImage[]
   const amenityOptions: StudioAmenityOption[] = ((amenityData ?? []) as Amenity[]).map(
     (amenity) => ({
@@ -103,6 +125,15 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
       label: amenity.label,
       icon_name: amenity.icon_name,
       description: amenity.description,
+    })
+  )
+  const addonOptions: StudioAddonOption[] = ((addonData ?? []) as Addon[]).map(
+    (addon) => ({
+      id: addon.id,
+      name: addon.name,
+      description: addon.description,
+      price: addon.price,
+      is_active: addon.is_active,
     })
   )
   const cloudinaryFolderId = getExistingCloudinaryFolderId(
@@ -134,6 +165,7 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
       alt_text: image.alt_text ?? "",
     })),
     amenityIds: (studioAmenityData ?? []).map((amenity) => amenity.amenity_id),
+    addonIds: (studioAddonData ?? []).map((addon) => addon.addon_id),
   }
   const action = updateStudioAction.bind(null, studio.id)
 
@@ -157,6 +189,7 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
 
       <StudioForm
         action={action}
+        addonOptions={addonOptions}
         amenityOptions={amenityOptions}
         cancelHref="/admin/studios"
         cloudinaryFolderId={cloudinaryFolderId}
