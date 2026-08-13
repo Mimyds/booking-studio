@@ -41,7 +41,7 @@ export async function updateStudioAction(
     return { error: "Le studio est introuvable." }
   }
 
-  const { payload, galleryImages, amenityIds, addonIds, errors } =
+  const { payload, galleryImages, amenityIds, addonIds, experienceIds, errors } =
     parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
@@ -109,6 +109,23 @@ export async function updateStudioAction(
 
     return {
       error: "Les add-ons du studio n’ont pas pu être chargés.",
+    }
+  }
+
+  const { data: existingExperienceData, error: existingExperienceError } =
+    await supabase
+      .from("studio_experiences")
+      .select("experience_id")
+      .eq("studio_id", studioId)
+
+  if (existingExperienceError) {
+    console.error("[update-studio] Experiences select failed", {
+      code: existingExperienceError.code,
+      message: existingExperienceError.message,
+    })
+
+    return {
+      error: "Les expériences du studio n’ont pas pu être chargées.",
     }
   }
 
@@ -313,6 +330,53 @@ export async function updateStudioAction(
 
       return {
         error: "Les add-ons ajoutés n’ont pas pu être enregistrés.",
+      }
+    }
+  }
+
+  const previousExperienceIds = (existingExperienceData ?? []).map(
+    (experience) => experience.experience_id
+  )
+  const addedExperienceIds = getAddedIds(previousExperienceIds, experienceIds)
+  const removedExperienceIds = getRemovedIds(previousExperienceIds, experienceIds)
+
+  if (removedExperienceIds.length > 0) {
+    const { error: experienceDeleteError } = await supabase
+      .from("studio_experiences")
+      .delete()
+      .eq("studio_id", studioId)
+      .in("experience_id", removedExperienceIds)
+
+    if (experienceDeleteError) {
+      console.error("[update-studio] Experiences delete failed", {
+        code: experienceDeleteError.code,
+        message: experienceDeleteError.message,
+      })
+
+      return {
+        error: "Les expériences retirées n’ont pas pu être enregistrées.",
+      }
+    }
+  }
+
+  if (addedExperienceIds.length > 0) {
+    const { error: experienceInsertError } = await supabase
+      .from("studio_experiences")
+      .insert(
+        addedExperienceIds.map((experienceId) => ({
+          studio_id: studioId,
+          experience_id: experienceId,
+        }))
+      )
+
+    if (experienceInsertError) {
+      console.error("[update-studio] Experiences insert failed", {
+        code: experienceInsertError.code,
+        message: experienceInsertError.message,
+      })
+
+      return {
+        error: "Les expériences ajoutées n’ont pas pu être enregistrées.",
       }
     }
   }

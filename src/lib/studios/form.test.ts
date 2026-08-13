@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   parseStudioAddonIds,
   parseStudioAmenityIds,
+  parseStudioExperienceIds,
   parseStudioForm,
   parseStudioGalleryImages,
   slugifyStudioName,
@@ -33,6 +34,9 @@ describe("parseStudioForm", () => {
     formData.append("addon_ids", "3")
     formData.append("addon_ids", "4")
     formData.append("addon_ids", "3")
+    formData.append("experience_ids", "5")
+    formData.append("experience_ids", "6")
+    formData.append("experience_ids", "5")
     formData.set(
       "image_cover_public_id",
       "booking-studio/studios/studio-creole/cover/image"
@@ -73,6 +77,7 @@ describe("parseStudioForm", () => {
     ])
     expect(result.amenityIds).toEqual([1, 2])
     expect(result.addonIds).toEqual([3, 4])
+    expect(result.experienceIds).toEqual([5, 6])
   })
 
   it("returns errors for invalid required values", () => {
@@ -180,6 +185,19 @@ describe("parseStudioAddonIds", () => {
 
     expect(parseStudioAddonIds(formData)).toMatchObject({
       addonIds: [3],
+      error: expect.any(String),
+    })
+  })
+})
+
+describe("parseStudioExperienceIds", () => {
+  it("rejects invalid experience ids", () => {
+    const formData = new FormData()
+    formData.append("experience_ids", "5")
+    formData.append("experience_ids", "invalid")
+
+    expect(parseStudioExperienceIds(formData)).toMatchObject({
+      experienceIds: [5],
       error: expect.any(String),
     })
   })

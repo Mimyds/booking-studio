@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import {
   getAddonCloudinaryFolderPaths,
+  getExperienceCloudinaryFolderPaths,
   isManagedCloudinaryFolder,
   isManagedCloudinaryPublicId,
 } from "@/lib/cloudinary/config"
@@ -185,6 +186,29 @@ export async function destroyAddonCloudinaryFolders(publicId: string | null) {
   }
 
   const folders = getAddonCloudinaryFolderPaths(publicId)
+  const results = []
+
+  for (const folder of folders) {
+    const result = await destroyCloudinaryFolder(folder)
+
+    results.push({ folder, result })
+  }
+
+  return results
+}
+
+export async function destroyExperienceCloudinaryFolders(
+  publicIds: Array<string | null>
+) {
+  const managedPublicIds = publicIds.filter(
+    (publicId): publicId is string => Boolean(publicId)
+  )
+
+  if (managedPublicIds.length === 0) {
+    return []
+  }
+
+  const folders = getExperienceCloudinaryFolderPaths(managedPublicIds)
   const results = []
 
   for (const folder of folders) {

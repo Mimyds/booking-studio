@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Addon } from "@/lib/addons/types"
 import { getStudioCloudinaryFolderId } from "@/lib/cloudinary/config"
+import type { Experience } from "@/lib/experiences/types"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { studioSelect } from "@/lib/studios/query"
 import type { Amenity, Studio, StudioGalleryImage } from "@/lib/studios/types"
@@ -12,6 +13,7 @@ import {
   StudioForm,
   type StudioAddonOption,
   type StudioAmenityOption,
+  type StudioExperienceOption,
   type StudioFormInitialValues,
 } from "../../new/studio-form"
 import { updateStudioAction } from "./actions"
@@ -118,6 +120,27 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
     throw new Error("Impossible de charger les add-ons du studio.")
   }
 
+  const { data: experienceData, error: experienceError } = await supabase
+    .from("experiences")
+    .select(
+      "id, created_at, title, description, external_url, is_active, cover_image_public_id, thumbnail_image_public_id"
+    )
+    .order("title", { ascending: true })
+
+  if (experienceError) {
+    throw new Error("Impossible de charger les expériences.")
+  }
+
+  const { data: studioExperienceData, error: studioExperienceError } =
+    await supabase
+      .from("studio_experiences")
+      .select("experience_id")
+      .eq("studio_id", studio.id)
+
+  if (studioExperienceError) {
+    throw new Error("Impossible de charger les expériences du studio.")
+  }
+
   const galleryImages = (galleryData ?? []) as StudioGalleryImage[]
   const amenityOptions: StudioAmenityOption[] = ((amenityData ?? []) as Amenity[]).map(
     (amenity) => ({
@@ -136,6 +159,15 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
       is_active: addon.is_active,
     })
   )
+  const experienceOptions: StudioExperienceOption[] = (
+    (experienceData ?? []) as Experience[]
+  ).map((experience) => ({
+    id: experience.id,
+    title: experience.title,
+    description: experience.description,
+    external_url: experience.external_url,
+    is_active: experience.is_active,
+  }))
   const cloudinaryFolderId = getExistingCloudinaryFolderId(
     studio,
     galleryImages
@@ -166,6 +198,9 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
     })),
     amenityIds: (studioAmenityData ?? []).map((amenity) => amenity.amenity_id),
     addonIds: (studioAddonData ?? []).map((addon) => addon.addon_id),
+    experienceIds: (studioExperienceData ?? []).map(
+      (experience) => experience.experience_id
+    ),
   }
   const action = updateStudioAction.bind(null, studio.id)
 
@@ -193,6 +228,7 @@ export default async function EditStudioPage({ params }: EditStudioPageProps) {
         amenityOptions={amenityOptions}
         cancelHref="/admin/studios"
         cloudinaryFolderId={cloudinaryFolderId}
+        experienceOptions={experienceOptions}
         initialValues={initialValues}
         pendingLabel="Enregistrement..."
         submitLabel="Enregistrer"
