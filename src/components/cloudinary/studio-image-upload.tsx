@@ -25,6 +25,7 @@ const LazyCldUploadWidget = lazy(async () => {
 export type StudioImageValue = {
   image_public_id: string
   alt_text: string
+  cloudinary_url?: string | null
 }
 
 type StudioImageUploadProps = {
@@ -166,10 +167,16 @@ export function StudioImageUpload({
         return
       }
 
+      const cloudinaryUrl =
+        "secure_url" in info && typeof info.secure_url === "string"
+          ? info.secure_url
+          : null
+
       setError(null)
       onUpload({
         image_public_id: info.public_id,
         alt_text: info.original_filename ?? "",
+        cloudinary_url: cloudinaryUrl,
       })
     },
   }

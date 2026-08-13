@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  parseStudioAddonIds,
   parseStudioAmenityIds,
   parseStudioForm,
   parseStudioGalleryImages,
@@ -29,6 +30,9 @@ describe("parseStudioForm", () => {
     formData.append("amenity_ids", "1")
     formData.append("amenity_ids", "2")
     formData.append("amenity_ids", "1")
+    formData.append("addon_ids", "3")
+    formData.append("addon_ids", "4")
+    formData.append("addon_ids", "3")
     formData.set(
       "image_cover_public_id",
       "booking-studio/studios/studio-creole/cover/image"
@@ -68,6 +72,7 @@ describe("parseStudioForm", () => {
       },
     ])
     expect(result.amenityIds).toEqual([1, 2])
+    expect(result.addonIds).toEqual([3, 4])
   })
 
   it("returns errors for invalid required values", () => {
@@ -162,6 +167,19 @@ describe("parseStudioAmenityIds", () => {
 
     expect(parseStudioAmenityIds(formData)).toMatchObject({
       amenityIds: [1],
+      error: expect.any(String),
+    })
+  })
+})
+
+describe("parseStudioAddonIds", () => {
+  it("rejects invalid add-on ids", () => {
+    const formData = new FormData()
+    formData.append("addon_ids", "3")
+    formData.append("addon_ids", "invalid")
+
+    expect(parseStudioAddonIds(formData)).toMatchObject({
+      addonIds: [3],
       error: expect.any(String),
     })
   })

@@ -1,4 +1,4 @@
-import { isManagedCloudinaryPublicId } from "@/lib/cloudinary/config"
+import { isManagedStudioCloudinaryPublicId } from "@/lib/cloudinary/config"
 
 export type StudioFormPayload = {
   slug: string
@@ -37,6 +37,7 @@ export type StudioFormErrors = Partial<
     | "image_cover_public_id"
     | "gallery_images"
     | "amenity_ids"
+    | "addon_ids"
     | "short_description"
     | "welcome_title",
     string
@@ -123,16 +124,35 @@ export function parseStudioAmenityIds(formData: FormData) {
   return { amenityIds: uniqueAmenityIds }
 }
 
+export function parseStudioAddonIds(formData: FormData) {
+  const rawAddonIds = formData.getAll("addon_ids")
+  const addonIds = rawAddonIds
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0)
+  const uniqueAddonIds = Array.from(new Set(addonIds))
+
+  if (addonIds.length !== rawAddonIds.length) {
+    return {
+      addonIds: uniqueAddonIds,
+      error: "Les add-ons sont invalides.",
+    }
+  }
+
+  return { addonIds: uniqueAddonIds }
+}
+
 export function parseStudioForm(formData: FormData): {
   payload: StudioFormPayload
   galleryImages: StudioGalleryImageInput[]
   amenityIds: number[]
+  addonIds: number[]
   errors: StudioFormErrors
 } {
   const { galleryImages, error: galleryError } = parseStudioGalleryImages(
     formData.get("gallery_images")
   )
   const { amenityIds, error: amenityIdsError } = parseStudioAmenityIds(formData)
+  const { addonIds, error: addonIdsError } = parseStudioAddonIds(formData)
   const payload: StudioFormPayload = {
     slug: getText(formData, "slug").toLowerCase(),
     name: getText(formData, "name"),
@@ -186,13 +206,13 @@ export function parseStudioForm(formData: FormData): {
 
   if (
     payload.image_cover_public_id &&
-    !isManagedCloudinaryPublicId(payload.image_cover_public_id)
+    !isManagedStudioCloudinaryPublicId(payload.image_cover_public_id)
   ) {
     errors.image_cover_public_id = "L’image de couverture est invalide."
   }
 
   const hasInvalidGalleryFolder = galleryImages.some(
-    (image) => !isManagedCloudinaryPublicId(image.image_public_id)
+    (image) => !isManagedStudioCloudinaryPublicId(image.image_public_id)
   )
 
   if (galleryError) {
@@ -205,5 +225,9 @@ export function parseStudioForm(formData: FormData): {
     errors.amenity_ids = amenityIdsError
   }
 
-  return { payload, galleryImages, amenityIds, errors }
+  if (addonIdsError) {
+    errors.addon_ids = addonIdsError
+  }
+
+  return { payload, galleryImages, amenityIds, addonIds, errors }
 }

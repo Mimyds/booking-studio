@@ -39,7 +39,8 @@ export async function createStudioAction(
     return { error: "Votre session a expiré. Reconnectez-vous pour continuer." }
   }
 
-  const { payload, galleryImages, amenityIds, errors } = parseStudioForm(formData)
+  const { payload, galleryImages, amenityIds, addonIds, errors } =
+    parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -141,6 +142,36 @@ export async function createStudioAction(
       return {
         error:
           "Les équipements n’ont pas pu être enregistrés. Le studio n’a pas été créé.",
+      }
+    }
+  }
+
+  if (addonIds.length > 0) {
+    const { error: addonError } = await supabase
+      .from("studio_addons")
+      .insert(
+        addonIds.map((addonId) => ({
+          studio_id: studio.id,
+          addon_id: addonId,
+        }))
+      )
+
+    if (addonError) {
+      console.error("[create-studio] Add-ons insert failed", {
+        code: addonError.code,
+        message: addonError.message,
+      })
+
+      await rollbackCreatedStudio(supabase, studio.id)
+
+      await destroyCloudinaryAssets([
+        payload.image_cover_public_id,
+        ...galleryImages.map((image) => image.image_public_id),
+      ])
+
+      return {
+        error:
+          "Les add-ons n’ont pas pu être enregistrés. Le studio n’a pas été créé.",
       }
     }
   }

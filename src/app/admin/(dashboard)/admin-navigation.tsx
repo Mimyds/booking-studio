@@ -2,14 +2,17 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import {
   Building2,
   CalendarCheck,
+  ChevronDown,
   LayoutDashboard,
   Settings,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 const navigationItems = [
   {
@@ -25,17 +28,38 @@ const navigationItems = [
     icon: CalendarCheck,
   },
   {
-    href: "/admin/studios",
-    label: "Studios",
-    marker: "⌘S",
-    icon: Building2,
-  },
-  {
     href: "/admin/settings",
     label: "Paramètres",
     marker: "⌘,",
     icon: Settings,
   },
+]
+
+const studiosNavigationItem = {
+  href: "/admin/studios",
+  label: "Studios",
+  marker: "⌘S",
+  icon: Building2,
+  children: [
+    {
+      href: "/admin/studios",
+      label: "Liste des studios",
+    },
+    {
+      href: "/admin/add-ons",
+      label: "Liste des add-ons",
+    },
+    {
+      href: "/admin/experiences",
+      label: "Liste des expériences",
+    },
+  ],
+}
+
+const mobileNavigationItems = [
+  ...navigationItems.slice(0, 2),
+  studiosNavigationItem,
+  ...navigationItems.slice(2),
 ]
 
 type AdminNavigationProps = {
@@ -54,6 +78,11 @@ function isActivePath(pathname: string, href: string) {
 
 export function AdminDesktopSidebar() {
   const pathname = usePathname()
+  const isStudiosSectionActive = studiosNavigationItem.children.some((item) =>
+    isActivePath(pathname, item.href)
+  )
+  const [isStudiosMenuExpanded, setIsStudiosMenuExpanded] = useState(false)
+  const isStudiosMenuOpen = isStudiosSectionActive || isStudiosMenuExpanded
 
   return (
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-slate-400/20 bg-slate-950 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_18rem)] p-5 text-slate-50 backdrop-blur-xl lg:flex">
@@ -74,7 +103,68 @@ export function AdminDesktopSidebar() {
       <Separator className="bg-slate-400/20" />
 
       <nav className="grid gap-2 py-5" aria-label="Navigation admin">
-        {navigationItems.map((item) => {
+        {navigationItems.slice(0, 2).map((item) => {
+          const isActive = isActivePath(pathname, item.href)
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center justify-between rounded-2xl border border-transparent px-4 py-3 text-slate-400 transition hover:border-white/10 hover:bg-white/10 hover:text-white aria-[current=page]:border-white/10 aria-[current=page]:bg-white/10 aria-[current=page]:text-white"
+              aria-current={isActive ? "page" : undefined}
+            >
+              <span>{item.label}</span>
+              <kbd className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-200/80">
+                {item.marker}
+              </kbd>
+            </Link>
+          )
+        })}
+
+        <div className="grid gap-1">
+          <button
+            type="button"
+            className="flex items-center justify-between rounded-2xl border border-transparent px-4 py-3 text-left text-slate-400 transition hover:border-white/10 hover:bg-white/10 hover:text-white aria-[current=page]:border-white/10 aria-[current=page]:bg-white/10 aria-[current=page]:text-white"
+            aria-current={isStudiosSectionActive ? "page" : undefined}
+            aria-expanded={isStudiosMenuOpen}
+            onClick={() => setIsStudiosMenuExpanded((isOpen) => !isOpen)}
+          >
+            <span>{studiosNavigationItem.label}</span>
+            <span className="flex items-center gap-2">
+              <kbd className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[0.65rem] font-semibold text-slate-200/80">
+                {studiosNavigationItem.marker}
+              </kbd>
+              <ChevronDown
+                className={cn(
+                  "size-4 transition",
+                  isStudiosMenuOpen ? "rotate-180" : undefined
+                )}
+                aria-hidden="true"
+              />
+            </span>
+          </button>
+
+          {isStudiosMenuOpen ? (
+            <div className="ml-4 grid gap-1 border-l border-white/10 pl-3">
+              {studiosNavigationItem.children.map((item) => {
+                const isActive = isActivePath(pathname, item.href)
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-xl px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-white aria-[current=page]:bg-white/10 aria-[current=page]:text-white"
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        {navigationItems.slice(2).map((item) => {
           const isActive = isActivePath(pathname, item.href)
 
           return (
@@ -151,7 +241,7 @@ export function AdminMobileBottomNav() {
       aria-label="Navigation admin mobile"
     >
       <div className="grid grid-cols-4 gap-1 rounded-3xl border border-slate-200/80 bg-slate-50/90 p-1">
-        {navigationItems.map((item) => {
+        {mobileNavigationItems.map((item) => {
           const Icon = item.icon
           const isActive = isActivePath(pathname, item.href)
 
