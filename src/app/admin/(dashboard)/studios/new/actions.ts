@@ -39,7 +39,7 @@ export async function createStudioAction(
     return { error: "Votre session a expiré. Reconnectez-vous pour continuer." }
   }
 
-  const { payload, galleryImages, amenityIds, addonIds, errors } =
+  const { payload, galleryImages, amenityIds, addonIds, experienceIds, errors } =
     parseStudioForm(formData)
 
   if (Object.keys(errors).length > 0) {
@@ -172,6 +172,36 @@ export async function createStudioAction(
       return {
         error:
           "Les add-ons n’ont pas pu être enregistrés. Le studio n’a pas été créé.",
+      }
+    }
+  }
+
+  if (experienceIds.length > 0) {
+    const { error: experienceError } = await supabase
+      .from("studio_experiences")
+      .insert(
+        experienceIds.map((experienceId) => ({
+          studio_id: studio.id,
+          experience_id: experienceId,
+        }))
+      )
+
+    if (experienceError) {
+      console.error("[create-studio] Experiences insert failed", {
+        code: experienceError.code,
+        message: experienceError.message,
+      })
+
+      await rollbackCreatedStudio(supabase, studio.id)
+
+      await destroyCloudinaryAssets([
+        payload.image_cover_public_id,
+        ...galleryImages.map((image) => image.image_public_id),
+      ])
+
+      return {
+        error:
+          "Les expériences n’ont pas pu être enregistrées. Le studio n’a pas été créé.",
       }
     }
   }

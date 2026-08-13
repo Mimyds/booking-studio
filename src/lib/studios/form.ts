@@ -38,6 +38,7 @@ export type StudioFormErrors = Partial<
     | "gallery_images"
     | "amenity_ids"
     | "addon_ids"
+    | "experience_ids"
     | "short_description"
     | "welcome_title",
     string
@@ -141,11 +142,29 @@ export function parseStudioAddonIds(formData: FormData) {
   return { addonIds: uniqueAddonIds }
 }
 
+export function parseStudioExperienceIds(formData: FormData) {
+  const rawExperienceIds = formData.getAll("experience_ids")
+  const experienceIds = rawExperienceIds
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0)
+  const uniqueExperienceIds = Array.from(new Set(experienceIds))
+
+  if (experienceIds.length !== rawExperienceIds.length) {
+    return {
+      experienceIds: uniqueExperienceIds,
+      error: "Les expériences sont invalides.",
+    }
+  }
+
+  return { experienceIds: uniqueExperienceIds }
+}
+
 export function parseStudioForm(formData: FormData): {
   payload: StudioFormPayload
   galleryImages: StudioGalleryImageInput[]
   amenityIds: number[]
   addonIds: number[]
+  experienceIds: number[]
   errors: StudioFormErrors
 } {
   const { galleryImages, error: galleryError } = parseStudioGalleryImages(
@@ -153,6 +172,8 @@ export function parseStudioForm(formData: FormData): {
   )
   const { amenityIds, error: amenityIdsError } = parseStudioAmenityIds(formData)
   const { addonIds, error: addonIdsError } = parseStudioAddonIds(formData)
+  const { experienceIds, error: experienceIdsError } =
+    parseStudioExperienceIds(formData)
   const payload: StudioFormPayload = {
     slug: getText(formData, "slug").toLowerCase(),
     name: getText(formData, "name"),
@@ -229,5 +250,9 @@ export function parseStudioForm(formData: FormData): {
     errors.addon_ids = addonIdsError
   }
 
-  return { payload, galleryImages, amenityIds, addonIds, errors }
+  if (experienceIdsError) {
+    errors.experience_ids = experienceIdsError
+  }
+
+  return { payload, galleryImages, amenityIds, addonIds, experienceIds, errors }
 }

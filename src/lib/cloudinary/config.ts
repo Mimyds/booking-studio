@@ -12,6 +12,12 @@ export const cloudinaryFolders = {
   addonImage(folderId: string) {
     return `${cloudinaryRootFolder}/add-ons/${normalizeFolderSegment(folderId)}/image`
   },
+  experienceCover(folderId: string) {
+    return `${cloudinaryRootFolder}/experiences/${normalizeFolderSegment(folderId)}/cover`
+  },
+  experienceThumbnail(folderId: string) {
+    return `${cloudinaryRootFolder}/experiences/${normalizeFolderSegment(folderId)}/thumbnail`
+  },
   studioCover(folderId: string) {
     return `${cloudinaryRootFolder}/studios/${normalizeFolderSegment(folderId)}/cover`
   },
@@ -38,6 +44,12 @@ export function isManagedCloudinaryFolder(folder: string) {
     ) ||
     /^booking-studio\/add-ons\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
       normalizedFolder
+    ) ||
+    /^booking-studio\/experiences\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|thumbnail)$/.test(
+      normalizedFolder
+    ) ||
+    /^booking-studio\/experiences\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
+      normalizedFolder
     )
   )
 }
@@ -54,10 +66,17 @@ export function isManagedAddonCloudinaryPublicId(publicId: string) {
   )
 }
 
+export function isManagedExperienceCloudinaryPublicId(publicId: string) {
+  return /^booking-studio\/experiences\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:cover|thumbnail)\/[^/]+$/.test(
+    publicId.trim()
+  )
+}
+
 export function isManagedCloudinaryPublicId(publicId: string) {
   return (
     isManagedStudioCloudinaryPublicId(publicId) ||
-    isManagedAddonCloudinaryPublicId(publicId)
+    isManagedAddonCloudinaryPublicId(publicId) ||
+    isManagedExperienceCloudinaryPublicId(publicId)
   )
 }
 
@@ -81,6 +100,16 @@ export function getAddonCloudinaryFolderId(publicId: string) {
   return match?.[1] ?? null
 }
 
+export function getExperienceCloudinaryFolderId(publicId: string) {
+  const match = publicId
+    .trim()
+    .match(
+      /^booking-studio\/experiences\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(?:cover|thumbnail)\/[^/]+$/
+    )
+
+  return match?.[1] ?? null
+}
+
 export function getAddonCloudinaryFolderPaths(publicId: string) {
   const folderId = getAddonCloudinaryFolderId(publicId)
 
@@ -91,6 +120,28 @@ export function getAddonCloudinaryFolderPaths(publicId: string) {
   const addonFolder = `${cloudinaryRootFolder}/add-ons/${folderId}`
 
   return [`${addonFolder}/image`, addonFolder]
+}
+
+export function getExperienceCloudinaryFolderPaths(publicIds: string[]) {
+  const folderIds = new Set<string>()
+
+  for (const publicId of publicIds) {
+    const folderId = getExperienceCloudinaryFolderId(publicId)
+
+    if (folderId) {
+      folderIds.add(folderId)
+    }
+  }
+
+  return Array.from(folderIds).flatMap((folderId) => {
+    const experienceFolder = `${cloudinaryRootFolder}/experiences/${folderId}`
+
+    return [
+      `${experienceFolder}/cover`,
+      `${experienceFolder}/thumbnail`,
+      experienceFolder,
+    ]
+  })
 }
 
 export function isPublicIdInFolder(publicId: string, folder: string) {
