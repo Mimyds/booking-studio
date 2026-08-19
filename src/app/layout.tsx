@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Cormorant_Garamond, Geist } from 'next/font/google'
+import { Cormorant_Garamond, Inter } from 'next/font/google'
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ const cormorant = Cormorant_Garamond({
   variable: "--font-serif",
 });
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: 'The Studio | Locations de Vacances Premium en Martinique',
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="fr" className={cn(cormorant.variable, "font-sans", geist.variable)}>
+    <html lang="fr" className={cn(cormorant.variable, "font-sans", inter.variable)}>
       <body
         suppressHydrationWarning
         className="font-sans antialiased bg-background text-foreground"
