@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface HeaderProps {
+  brandLabel?: string
   variant?: "transparent" | "solid"
   showBookingCta?: boolean
   bookingHref?: string
 }
 
 export function Header({
+  brandLabel = "The Studio",
   variant = "solid",
   showBookingCta = true,
   bookingHref = "/studios",
@@ -53,7 +55,7 @@ export function Header({
               variant === "transparent" ? "text-white" : "text-foreground"
             )}
           >
-            The Studio
+            {brandLabel}
           </Link>
 
           <nav className="hidden items-center gap-8 md:flex">

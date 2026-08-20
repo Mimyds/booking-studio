@@ -42,6 +42,29 @@ export type StudioAmenity = {
   amenity_id: number
 }
 
+export type StudioDetailAmenity = Amenity & {
+  studio_amenity_id: number
+}
+
+export type StudioDetailExperience = {
+  id: number
+  created_at: string
+  title: string
+  description: string | null
+  external_url: string | null
+  is_active: boolean
+  cover_image_public_id: string | null
+  thumbnail_image_public_id: string | null
+  studio_experience_id: number
+}
+
+export type StudioDetail = {
+  studio: Studio
+  galleryImages: StudioGalleryImage[]
+  amenities: StudioDetailAmenity[]
+  experiences: StudioDetailExperience[]
+}
+
 export type StudioOrderBy =
   | "created_at"
   | "name"

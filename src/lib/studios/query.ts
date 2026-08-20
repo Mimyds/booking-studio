@@ -1,5 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import type { Studio, StudiosQueryOptions } from "@/lib/studios/types"
+import type {
+  Amenity,
+  Studio,
+  StudioDetail,
+  StudioDetailExperience,
+  StudioGalleryImage,
+  StudiosQueryOptions,
+} from "@/lib/studios/types"
 
 export const studioSelect = `
   id,
@@ -90,5 +97,107 @@ export async function fetchStudios(
   return {
     studios: (data ?? []) as Studio[],
     error,
+  }
+}
+
+type StudioAmenityRow = {
+  id: number
+  amenities: Amenity | Amenity[] | null
+}
+
+type StudioExperienceJoin = {
+  id: number
+  experiences:
+    | Omit<StudioDetailExperience, "studio_experience_id">
+    | Omit<StudioDetailExperience, "studio_experience_id">[]
+    | null
+}
+
+function firstRelation<T>(value: T | T[] | null) {
+  return Array.isArray(value) ? value[0] ?? null : value
+}
+
+export async function fetchStudioDetailBySlug(
+  supabase: SupabaseClient,
+  slug: string
+): Promise<{ detail: StudioDetail | null; error: unknown }> {
+  const { data: studioData, error: studioError } = await supabase
+    .from("studios")
+    .select(studioSelect)
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .single()
+
+  if (studioError || !studioData) {
+    return { detail: null, error: studioError }
+  }
+
+  const studio = studioData as Studio
+  const [galleryResult, amenitiesResult, experiencesResult] =
+    await Promise.all([
+      supabase
+        .from("studio_gallery_images")
+        .select("id, created_at, studio_id, image_public_id, sort_order, alt_text")
+        .eq("studio_id", studio.id)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true }),
+      supabase
+        .from("studio_amenities")
+        .select(
+          "id, amenities(id, created_at, label, icon_name, description)"
+        )
+        .eq("studio_id", studio.id)
+        .order("id", { ascending: true }),
+      supabase
+        .from("studio_experiences")
+        .select(
+          "id, experiences(id, created_at, title, description, external_url, is_active, cover_image_public_id, thumbnail_image_public_id)"
+        )
+        .eq("studio_id", studio.id)
+        .order("id", { ascending: true }),
+    ])
+
+  const amenities = ((amenitiesResult.data ?? []) as StudioAmenityRow[])
+    .map((row) => {
+      const amenity = firstRelation(row.amenities)
+
+      return amenity
+        ? {
+            ...amenity,
+            studio_amenity_id: row.id,
+          }
+        : null
+    })
+    .filter((amenity): amenity is StudioDetail["amenities"][number] =>
+      Boolean(amenity)
+    )
+
+  const experiences = (
+    (experiencesResult.data ?? []) as StudioExperienceJoin[]
+  )
+    .map((row) => {
+      const experience = firstRelation(row.experiences)
+
+      return experience?.is_active
+        ? {
+            ...experience,
+            studio_experience_id: row.id,
+          }
+        : null
+    })
+    .filter(
+      (experience): experience is StudioDetailExperience =>
+        Boolean(experience)
+    )
+
+  return {
+    detail: {
+      studio,
+      galleryImages: (galleryResult.data ?? []) as StudioGalleryImage[],
+      amenities,
+      experiences,
+    },
+    error:
+      galleryResult.error ?? amenitiesResult.error ?? experiencesResult.error,
   }
 }
