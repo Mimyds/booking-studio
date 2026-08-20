@@ -27,7 +27,7 @@ type StudioPageProps = {
   params: Promise<{ slug: string }>
 }
 
-const detailBrandName = "Okavango Blue Studio"
+const detailBrandName = "The Studio"
 
 function getNumericAmount(value: number | string) {
   const amount = typeof value === "string" ? Number(value) : value
@@ -262,7 +262,7 @@ export default async function StudioPage({ params }: StudioPageProps) {
         <StudioExperiences experiences={experiences} />
       </main>
 
-      <Footer brandName={detailBrandName} email="contact@okavangobluestudio.com" />
+      <Footer brandName={detailBrandName} email="contact@thestudio.com" />
     </div>
   )
 }
