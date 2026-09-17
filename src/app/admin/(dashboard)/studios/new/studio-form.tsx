@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cloudinaryFolders } from "@/lib/cloudinary/config"
 import { slugifyStudioName } from "@/lib/studios/form"
+import { formatCurrency } from "@/lib/formatters"
 import {
   createStudioAction,
   type CreateStudioActionState,
@@ -284,6 +285,7 @@ function AmenitiesField({
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 max-[640px]:grid-cols-1">
           <select
+            aria-label="Équipement à ajouter"
             value={amenityToAdd}
             onChange={(event) => setAmenityToAdd(event.target.value)}
             disabled={availableOptions.length === 0}
@@ -366,11 +368,7 @@ function AmenitiesField({
 }
 
 function formatAddonPrice(value: number | string) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(Number(value ?? 0))
+  return formatCurrency(value, "EUR", 0)
 }
 
 function AddonsField({
@@ -467,6 +465,7 @@ function AddonsField({
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 max-[640px]:grid-cols-1">
           <select
+            aria-label="Add-on à ajouter"
             value={addonToAdd}
             onChange={(event) => setAddonToAdd(event.target.value)}
             disabled={availableOptions.length === 0}
@@ -602,6 +601,7 @@ function ExperiencesField({
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 max-[640px]:grid-cols-1">
           <select
+            aria-label="Expérience à ajouter"
             value={experienceToAdd}
             onChange={(event) => setExperienceToAdd(event.target.value)}
             disabled={availableOptions.length === 0}

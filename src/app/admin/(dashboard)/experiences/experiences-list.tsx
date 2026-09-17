@@ -26,16 +26,13 @@ import {
   type Experience,
   type UseExperiencesOptions,
 } from "@/hooks/use-experiences"
+import { formatDate as formatFrenchDate } from "@/lib/formatters"
 
 type StatusFilter = "all" | "active" | "inactive"
 type SortFilter = "title-asc" | "created-desc"
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function getSortOptions(sort: SortFilter): Pick<

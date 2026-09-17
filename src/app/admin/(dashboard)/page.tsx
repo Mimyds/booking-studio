@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { Metadata } from "next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { AnalyticsChartSwitcher } from "./dashboard-charts"
+import { formatCurrency as formatFrenchCurrency, formatDate as formatFrenchDate, formatNumber as formatFrenchNumber } from "@/lib/formatters"
 
 export const metadata: Metadata = {
   title: "Dashboard admin | The Studio",
@@ -102,27 +104,16 @@ async function getDashboardData() {
   }
 }
 
-function toNumber(value: number | string | null | undefined) {
-  return Number(value ?? 0)
-}
-
 function formatNumber(value: number | string | null | undefined) {
-  return new Intl.NumberFormat("fr-FR").format(toNumber(value))
+  return formatFrenchNumber(value)
 }
 
 function formatCurrency(value: number | string | null | undefined) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(toNumber(value))
+  return formatFrenchCurrency(value)
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 export default async function AdminDashboardPage() {
@@ -194,7 +185,7 @@ export default async function AdminDashboardPage() {
               moderne.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="secondary">Nouvelle réservation</Button>
+              <Button variant="secondary" asChild><Link href="/admin/bookings/new">Nouvelle réservation</Link></Button>
               <Button variant="outline">Voir le planning</Button>
             </div>
           </div>
@@ -311,8 +302,8 @@ export default async function AdminDashboardPage() {
                     {recentBookings.length} élément(s)
                   </span>
                 </div>
-                <Button variant="ghost" size="sm">
-                  Ouvrir
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/admin/bookings">Ouvrir</Link>
                 </Button>
               </div>
               <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">

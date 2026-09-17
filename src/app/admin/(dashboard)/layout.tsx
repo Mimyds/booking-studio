@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation"
+import Link from "next/link"
+import { formatDate } from "@/lib/formatters"
 import type { ReactNode } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -26,11 +28,7 @@ export default async function AdminDashboardLayout({
 
   const email = currentAdmin.adminUser.email
   const initials = email.slice(0, 2).toUpperCase()
-  const formattedDate = new Intl.DateTimeFormat("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date())
+  const formattedDate = formatDate(new Date(), { weekday: "long", day: "numeric", month: "long" })
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 [background:radial-gradient(circle_at_32rem_8rem,rgba(124,58,237,0.14),transparent_28rem),radial-gradient(circle_at_80%_0%,rgba(14,165,233,0.14),transparent_24rem),#f8fafc]">
@@ -64,11 +62,8 @@ export default async function AdminDashboardLayout({
                   className="h-11 border-slate-200/95 bg-white/70 pl-9 shadow-sm shadow-slate-950/5"
                 />
               </div>
-              <Button
-                variant="outline"
-                className="h-11 border-slate-200/95 bg-white/80 shadow-sm shadow-slate-950/5"
-              >
-                Export
+              <Button asChild variant="outline" className="h-11 border-slate-200/95 bg-white/80 shadow-sm shadow-slate-950/5">
+                <Link href="/api/admin/bookings/export">Export CSV</Link>
               </Button>
               <div className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200/95 bg-white/80 p-2 shadow-sm shadow-slate-950/5 max-[640px]:w-full">
                 <Avatar className="size-9">
@@ -108,11 +103,8 @@ export default async function AdminDashboardLayout({
                     className="h-12 rounded-2xl border-slate-200/95 bg-white/80 pl-9 shadow-sm shadow-slate-950/5"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-12 rounded-2xl border-slate-200/95 bg-white/80 px-5 shadow-sm shadow-slate-950/5"
-                >
-                  Export
+                <Button asChild variant="outline" className="h-12 rounded-2xl border-slate-200/95 bg-white/80 px-5 shadow-sm shadow-slate-950/5">
+                  <Link href="/api/admin/bookings/export">Export CSV</Link>
                 </Button>
               </div>
             </section>

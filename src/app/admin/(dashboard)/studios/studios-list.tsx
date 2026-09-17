@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useStudios, type Studio, type UseStudiosOptions } from "@/hooks/use-studios"
+import { formatCurrency as formatFrenchCurrency, formatDate as formatFrenchDate } from "@/lib/formatters"
 
 type PetsFilter = "all" | "yes" | "no"
 type PublicationFilter = "all" | "published" | "draft"
@@ -33,19 +34,11 @@ type SortFilter =
   | "capacity-desc"
 
 function formatCurrency(value: number | string, currency: string) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(Number(value ?? 0))
+  return formatFrenchCurrency(value, currency, 0)
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function getSortOptions(sort: SortFilter): Pick<
