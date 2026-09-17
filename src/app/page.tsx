@@ -65,7 +65,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <Header variant="solid" showBookingCta={false} />
+      <Header variant="scroll" initialTone="dark" showBookingCta={false} />
 
       <main className="flex-1 pt-20 md:pt-24">
         <section className="container mx-auto px-4 py-12 md:px-8 md:py-20">

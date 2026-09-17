@@ -200,7 +200,8 @@ export default async function StudioPage({ params }: StudioPageProps) {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <Header
         brandLabel={detailBrandName}
-        variant="transparent"
+        variant="scroll"
+        initialTone="light"
         showBookingCta
         bookingHref={`/studios/${studio.slug}/reservation`}
       />
