@@ -81,7 +81,7 @@ export function StudioGallery({ images, studioName }: StudioGalleryProps) {
               <div className="mt-6 flex justify-center gap-2">
                 {images.map((image, index) => (
                   <button
-                    key={`${image.publicId}-${index}`}
+                    key={image.publicId}
                     type="button"
                     onClick={() => setCurrentIndex(index)}
                     className={cn(
