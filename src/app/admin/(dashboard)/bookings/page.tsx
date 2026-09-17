@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentAdmin } from "@/lib/admin/auth"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { formatCurrency, formatDate as formatFrenchDate } from "@/lib/formatters"
 
 export const metadata: Metadata = {
   title: "Réservations admin | The Studio",
@@ -38,9 +39,7 @@ type Booking = {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit", month: "short", year: "numeric", timeZone: "UTC",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
 }
 
 export default async function AdminBookingsPage({
@@ -146,7 +145,7 @@ export default async function AdminBookingsPage({
                         <td className="px-4 py-5">{booking.guests_count}</td>
                         <td className="whitespace-nowrap px-4 py-5">{sources[booking.source] ?? booking.source}</td>
                         <td className="px-4 py-5"><Badge className={statuses[booking.status]?.className}>{statuses[booking.status]?.label ?? booking.status}</Badge></td>
-                        <td className="whitespace-nowrap px-4 py-5 text-right font-semibold">{new Intl.NumberFormat("fr-FR", { style: "currency", currency: booking.studios?.currency ?? "EUR" }).format(Number(booking.total_price))}</td>
+                        <td className="whitespace-nowrap px-4 py-5 text-right font-semibold">{formatCurrency(booking.total_price, booking.studios?.currency ?? "EUR")}</td>
                       <td className="px-4 py-5"><Button variant="outline" size="sm" asChild><Link href={`/admin/bookings/${booking.id}/edit`}>{booking.status === "cancelled" ? "Consulter" : "Gérer"}<span className="sr-only"> la réservation #{booking.id}</span></Link></Button></td>
                       </tr>
                     ))}

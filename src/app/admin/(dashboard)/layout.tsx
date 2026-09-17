@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { formatDate } from "@/lib/formatters"
 import type { ReactNode } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -27,11 +28,7 @@ export default async function AdminDashboardLayout({
 
   const email = currentAdmin.adminUser.email
   const initials = email.slice(0, 2).toUpperCase()
-  const formattedDate = new Intl.DateTimeFormat("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date())
+  const formattedDate = formatDate(new Date(), { weekday: "long", day: "numeric", month: "long" })
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 [background:radial-gradient(circle_at_32rem_8rem,rgba(124,58,237,0.14),transparent_28rem),radial-gradient(circle_at_80%_0%,rgba(14,165,233,0.14),transparent_24rem),#f8fafc]">

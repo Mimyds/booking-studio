@@ -22,25 +22,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useAddons, type Addon, type UseAddonsOptions } from "@/hooks/use-addons"
+import { formatCurrency as formatFrenchCurrency, formatDate as formatFrenchDate } from "@/lib/formatters"
 
 type StatusFilter = "all" | "active" | "inactive"
 type PriceFilter = "all" | "0-25" | "25-50" | "50-plus"
 type SortFilter = "name-asc" | "created-desc" | "price-asc" | "price-desc"
 
 function formatCurrency(value: number | string) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(Number(value ?? 0))
+  return formatFrenchCurrency(value, "EUR", 0)
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function getPriceFilter(price: PriceFilter) {

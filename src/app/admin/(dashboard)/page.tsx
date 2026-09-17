@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { AnalyticsChartSwitcher } from "./dashboard-charts"
+import { formatCurrency as formatFrenchCurrency, formatDate as formatFrenchDate, formatNumber as formatFrenchNumber } from "@/lib/formatters"
 
 export const metadata: Metadata = {
   title: "Dashboard admin | The Studio",
@@ -103,27 +104,16 @@ async function getDashboardData() {
   }
 }
 
-function toNumber(value: number | string | null | undefined) {
-  return Number(value ?? 0)
-}
-
 function formatNumber(value: number | string | null | undefined) {
-  return new Intl.NumberFormat("fr-FR").format(toNumber(value))
+  return formatFrenchNumber(value)
 }
 
 function formatCurrency(value: number | string | null | undefined) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(toNumber(value))
+  return formatFrenchCurrency(value)
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value))
+  return formatFrenchDate(value, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 export default async function AdminDashboardPage() {
