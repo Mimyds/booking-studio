@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import type { ReactNode } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -64,11 +65,8 @@ export default async function AdminDashboardLayout({
                   className="h-11 border-slate-200/95 bg-white/70 pl-9 shadow-sm shadow-slate-950/5"
                 />
               </div>
-              <Button
-                variant="outline"
-                className="h-11 border-slate-200/95 bg-white/80 shadow-sm shadow-slate-950/5"
-              >
-                Export
+              <Button asChild variant="outline" className="h-11 border-slate-200/95 bg-white/80 shadow-sm shadow-slate-950/5">
+                <Link href="/api/admin/bookings/export">Export CSV</Link>
               </Button>
               <div className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200/95 bg-white/80 p-2 shadow-sm shadow-slate-950/5 max-[640px]:w-full">
                 <Avatar className="size-9">
@@ -108,11 +106,8 @@ export default async function AdminDashboardLayout({
                     className="h-12 rounded-2xl border-slate-200/95 bg-white/80 pl-9 shadow-sm shadow-slate-950/5"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-12 rounded-2xl border-slate-200/95 bg-white/80 px-5 shadow-sm shadow-slate-950/5"
-                >
-                  Export
+                <Button asChild variant="outline" className="h-12 rounded-2xl border-slate-200/95 bg-white/80 px-5 shadow-sm shadow-slate-950/5">
+                  <Link href="/api/admin/bookings/export">Export CSV</Link>
                 </Button>
               </div>
             </section>

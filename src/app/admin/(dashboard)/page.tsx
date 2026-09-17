@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { Metadata } from "next"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -194,7 +195,7 @@ export default async function AdminDashboardPage() {
               moderne.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="secondary">Nouvelle réservation</Button>
+              <Button variant="secondary" asChild><Link href="/admin/bookings/new">Nouvelle réservation</Link></Button>
               <Button variant="outline">Voir le planning</Button>
             </div>
           </div>
@@ -311,8 +312,8 @@ export default async function AdminDashboardPage() {
                     {recentBookings.length} élément(s)
                   </span>
                 </div>
-                <Button variant="ghost" size="sm">
-                  Ouvrir
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/admin/bookings">Ouvrir</Link>
                 </Button>
               </div>
               <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4">

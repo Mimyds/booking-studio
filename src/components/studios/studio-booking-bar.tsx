@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { CalendarDays, Users } from "lucide-react"
 import { useState } from "react"
 
+import { getMinimumCheckout, getStayNights, MIN_BOOKING_NIGHTS } from "@/lib/bookings/stay"
 import { cn } from "@/lib/utils"
 
 type StudioBookingBarProps = {
@@ -25,6 +26,7 @@ export function StudioBookingBar({
   const defaultGuests = Math.min(Math.max(maxGuests, 1), 2).toString()
   const [checkIn, setCheckIn] = useState("")
   const [checkOut, setCheckOut] = useState("")
+  const [error, setError] = useState<string | null>(null)
   const [guests, setGuests] = useState(defaultGuests)
   const today = new Date().toISOString().slice(0, 10)
   const guestOptions = Array.from({ length: Math.max(maxGuests, 1) }, (_, index) =>
@@ -33,13 +35,19 @@ export function StudioBookingBar({
 
   function handleCheckInChange(value: string) {
     setCheckIn(value)
+    setError(null)
 
-    if (checkOut && value && checkOut <= value) {
+    if (checkOut && value && (getStayNights(value, checkOut) ?? 0) < MIN_BOOKING_NIGHTS) {
       setCheckOut("")
     }
   }
 
   function handleReserve() {
+    if ((getStayNights(checkIn, checkOut) ?? 0) < MIN_BOOKING_NIGHTS) {
+      setError("Choisissez des dates pour un séjour d’au moins 2 nuits.")
+      return
+    }
+    setError(null)
     const params = new URLSearchParams()
     const checkInParam = formatDateParam(checkIn)
     const checkOutParam = formatDateParam(checkOut)
@@ -83,9 +91,9 @@ export function StudioBookingBar({
             </span>
             <input
               type="date"
-              min={checkIn || today}
+              min={getMinimumCheckout(checkIn || today)}
               value={checkOut}
-              onChange={(event) => setCheckOut(event.target.value)}
+              onChange={(event) => { setCheckOut(event.target.value); setError(null) }}
               className="w-full min-w-0 bg-transparent text-sm font-semibold text-neutral-950 outline-none [color-scheme:light]"
               aria-label="Date de départ"
             />
@@ -122,6 +130,8 @@ export function StudioBookingBar({
           Réserver
         </button>
       </div>
+      <p className="px-5 py-2 text-xs text-neutral-500">Séjour minimum : 2 nuits.</p>
+      {error ? <p role="alert" className="px-5 pb-3 text-sm text-red-700">{error}</p> : null}
     </div>
   )
 }
